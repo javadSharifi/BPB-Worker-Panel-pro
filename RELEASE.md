@@ -1,6 +1,17 @@
-# 🎉 BPB Next Generation
+# 🚀 BPB Worker Panel Pro v5.1.1
 
-This version can only be deployed using [ONE-CLICK online BPB Wizard](https://wizard.bpb-panel.workers.dev) and you can UPDATE and DELETE your panel from panel itself!
+This release synchronizes BPB Worker Panel Pro with upstream **v5.1.1** (BPB Next Generation) while maintaining and upgrading the **Pro Edition** signature modern visual design and features.
+
+### 🌟 Pro Edition Highlights
+- **Modern Neon & Glassmorphism UI**: Complete visual overhaul of both the Login and Panel interfaces with sleek glass cards, glowing accents, and smooth transitions.
+- **Horizontal Tab Navigation**: Intuitive tabbed layout (Common, VLESS-Trojan, Fragment, Warp & Pro, Routing, External, Telegram, Import/Export, Subscriptions, Clients, Admin & Usage) replacing long vertical accordions.
+- **Dark / Light Mode**: Integrated theme toggle switch (🌙 / ☀️) with persistent theme preferences.
+- **Full Upstream v5.1.1 Architecture**: Complete migration to the modular backend (`src/handlers/`, `src/settings/`, `src/api/`, `src/auth/`), native Telegram Bot, live Cloudflare Usage Monitoring, Remote Settings, Built-in QR Code generator, Supported Clients table, and all protocol & security updates.
+- **Remark Emojis**: Clean `💦 ` emoji remark prefix retained for organized client subscription display.
+
+---
+
+# 🎉 BPB Next Generation (Upstream v5.1.1 Base)
 Please note that the wizard worker gets deployed only from [Wizard Github repository](https://github.com/bia-pain-bache/BPB-Wizard/tree/dev) directly for your safety.
 Wizard gives you a PRIVATE LINK after first installation and this link is a ONE-CLICK wizard.
 Also manual deployment and BPB Wizard client deployments do not work on this release.
