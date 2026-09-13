@@ -1,29 +1,68 @@
-# 💡 Bug fixes & Improvements
+# 🎉 BPB Next Generation
 
-- **Cloudflare Usage Monitor**: New panel section in Common tab — enter Account ID, API Token, and Worker Name to view live Workers usage stats (requests, subrequests, observability). Progress bars with color thresholds (green/amber/red), warning banner when nearing limits, and auto-fetch on page load if configured.
-- **Telegram Bot — Usage Command**: Added "📊 Usage" button to the bot main menu, displays formatted usage stats with ASCII progress bars and near-limit warnings. Proactive usage warning sent automatically when any metric exceeds 80%, throttled to once per 6 hours with 30-minute data cache.
-- **Redesigned Login Page**: Glass morphism card, neon inputs, password toggle, theme toggle pill with emoji indicators, and responsive design.
-- **Toast Notifications**: Replaced all `alert()` calls with elegant toast notifications (success/error/warning/info types) with auto-dismiss and progress bar.
-- **Confirm Modal**: Replaced all `confirm()` dialogs with a custom glass-card confirm modal with gradient buttons and spring animation.
-- **Fixed Modal Centering**: Changed all existing modals from `display: block` to `display: flex` so `align-items: center; justify-content: center;` works correctly.
-- **Telegram Bot — Removed QR from /start**: Removed "📱 QR Codes" button from the main menu.
-- **Navbar Positioning**: Changed from `position: fixed` to `position: relative` to remove floating behavior; adjusted main container padding and tab-bar top.
-- **Knocker Noise Mode UI**: Changed from text input to `<select>` dropdown (none/quic/random/custom) with conditional hex input field.
-- **WireGuard Download Buttons**: Added ⬇️ Download Normal / 🌀 Download Amnezia buttons in Warp Pro settings tab, and a WireGuard download row in subscription cards.
-- **Telegram Bot Integration**: Added a built-in Telegram bot with inline keyboard menus, subscription delivery, QR code generation, and settings info display. Configure via Panel → Telegram Bot section.
-- Fixed Cloudflare worker compatibility issue. Please select the latest compatibility date in dashboard if you have manually changed it before.
-- **External Raw Configs**: You can add desired subscriptions and URL configs and BPB fetches all configs and integrate them into Raw subscription.
-- **Upstream TCP Proxy**: adds a TLS config to `Normal` and `Raw` subscriptions which can be used with upstream proxies like SNI Spoof. It can be `IPv4:Port`, `[IPv6]:Port` or `Domain:Port`.
-- Implemented FinalMask feature of Xray core. Please update your clients to the latest version to support this.
-- Update Xray UDP Noise and added `Array` mode, you should enter numbers between 0-255 like `1,100,23,18...` in this field.
-- Removed `allowInsecure` from Xray core configs.
-- Fixed hourly releases.
-- Fixed `undefined` appeared in subscriptions links and Warp regestration. #1270 #1291
-- Fixed My IP section.
-- Updated packages and docs.
-- Improved error handling.
-- Bug fix, WorkerLess configs are working again. Recommended Fragment settings are `Packet: 1-1` and `Mode: Severe` #1305
-- Adapted sing-box new DNS features.
+This version can only be deployed using [ONE-CLICK online BPB Wizard](https://wizard.bpb-panel.workers.dev) and you can UPDATE and DELETE your panel from panel itself!
+Please note that the wizard worker gets deployed only from [Wizard Github repository](https://github.com/bia-pain-bache/BPB-Wizard/tree/dev) directly for your safety.
+Wizard gives you a PRIVATE LINK after first installation and this link is a ONE-CLICK wizard.
+Also manual deployment and BPB Wizard client deployments do not work on this release.
+
+## 💡 Improvements
+
+- An admin dashboard is added to panel in order to monitor your request usage, UPDATE panel to the latest version, permanently DELETE panel, reset password and set Telegram Bot.
+- UPDATE panel checks latest releases in background and gets enabled whenever there's a new stable release.
+- Telegram Bot is now implemented, you can get subscriptions, single configs and monitor your account request usage. It also warns about usage by passing 80% threshold, PR #1313
+- Now you can add Custom Domain to your panel from `Common` settings, dashboard setup is no longer needed. Also Custom Domain configs will be merged into your subscriptions with `D` tag so you don't need to login panel with domain and get another subscription.
+- All fixed variables like `VLESS UUID`, `Trojan Password`, `Subscription - Panel path`, `DoH URL`, `Proxy IPs`, `Nat64 Prefixes`, `Fallback` domain... can now be updated from panel. There's no Environment Variables in your Cloudflare dashboard anymore.
+
+> [!TIP]
+> BPB is not using Cloudflare D1 for this fixed variables due to D1 delay overhead and another infrastrucure inconsistencies. All of them are hardcoded into script.
+
+- Panel login now requires your `Cloudflare Email` as username. This will address security concerns like #1348
+- All Panel, Subscriptions and related URLs are ceiled by a compulsory `SECURE PATH` to maintain more security.
+
+> [!CAUTION]
+> You cannot reach your panel by just adding /panel to your worker domain anymore. The new entry is like https://xxxx.workers.dev/SECURE_PATH/panel, which the path is a random generated secure path by wizard. You can change it in panel later if you wish, panel will redirect you to new URL.
+> So please don't forget to save your panel URL after online wizard finished the job.
+
+- `Underlying DoH` is added to common settings which is used as your panel `DNS over HTTPS` underlying server.
+- `Fallback` behaviour is now throwing 404 by default. You can set `Fallback Domain` in Common settings section.
+- single `Proxy IP test` is added to related page.
+- Updating panel settings from a Remote BPB Panel and sharing settings is added in addition to existing File import and export. You can share or get all of settings except `VLESS UUID`, `Trojan Pass`, `Panel Path` and `Custom Domain` with some another BPB user.
+- Updated Clash, Amnezia Warp Pro settings. This may help connection on some ISPs.
+- Chain Proxy now supports `Xhttp` and `VLESS Encryption` for Xray and Clash cores.
+- Made Warp `Reserved bytes` optional. Some ISPs flagged reserved bytes.
+- Optimized Warp Pro noise generation for Xray core.
+- The Panel UI has been improved a lot and removed dark/light mode.
+- `Supported Clients` section added to Panel and Telegram including download latest version from sources.
+- Solid Data validations execute in backend from now on.
+- Implemented Toasts and message boxes instead of alerts in panel.
+- The whole project is restructured for maintainability purposes.
+- Updated default Warp accounts.
+- Fixed Typos in doc #1349
+- Fixed HTML embedings in script #1344
+- And lots of another subtle bug fixes and improvements...
+
+## 💡 Changes since 5.0.0
+
+- API Token has been changed and v5.0.0 Private Links and old tokens won't work on this.
+- Added `Import - Export` section to panel with ability to update settings from another BPB panels #1329
+- Added `Xhttp` transport and `VLESS Encryption` support to Chain Proxies for Xray and Clash.
+- Updated `Amnezia` H1-H4 params #1353
+- Made Warp `Reserved bytes` optional #1236
+- Resetting Telegram webhook after changing panel path.
+- Changed panel update check endpoint.
+- Panel UI improvement, added `Supported Clients` section to Panel and Telegram with download links.
+- Encapsulated worker domain and Custom Domain configs into separate URL tests #1359
+- Implemented built-in QR code generation for Telegram and panel.
+- Renamed configs filenames and sync Telegram and panel downloads.
+- Fixed sing-box qrcode and subscriptions.
+- Fixed Trojan password validation.
+- Fixed Chain Proxy validation #1352
+- Fixed missing sing-box Upstream Proxy #1354
+- Some other bug fixes.
+
+First time contributors: @javadSharifi @gbcwror @doublepleat
+
+![GitHub Downloads (specific asset, specific tag)](https://img.shields.io/github/downloads/bia-pain-bache/BPB-Worker-Panel/v5.1.1/worker.js)
 
 > [!CAUTION]
 > Please update whatever client you use, specially these ones:
@@ -42,9 +81,6 @@
 
 > [!CAUTION]
 > You have to enable `Hev TUN feature` in v2rayNG in order to connect properly, Xray native Tun is useless right now.
-
-> [!CAUTION]
-> If you are upgrading from versions below 3.5.1 to 4, you should get subscriptions from panel again.
 
 > [!NOTE]
 > These days Fragment on some ISPs stopped working in Iran, you can change `Fragment packet` to `1-1` instead of `tlshello` and test, also you can try to change `Fragment mode` to bypass Iran firewall.

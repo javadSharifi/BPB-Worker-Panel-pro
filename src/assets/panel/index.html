@@ -1,727 +1,813 @@
 <!DOCTYPE html>
 <html lang="en" data-theme="dark">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>BPB Panel v__VERSION__</title>
-    <link rel="icon" href="/favicon.ico" />
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
-    __STYLE__
+    <link id="favicon" rel="icon" type="image/x-icon" href="data:image/x-icon;base64,__ICON__">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&icon_names=add_circle,autorenew,cancel,check_circle,clock_loader_40,close,cloud_download,cloud_upload,code_xml,content_copy,dashboard,data_usage,delete,dns,download,draft,error,fingerprint,help,info,key_vertical,keyboard_arrow_down,link,logout,open_in_new,qr_code,refresh,save,settings,settings_backup_restore,share,smart_toy,terminal,tune,upgrade,upload,verified,visibility,visibility_off&display=block" />
+    <style>
+        /* CSS_PLACEHOLDER */
+    </style>
 </head>
+
 <body>
+    <!-- Floating Segmented Navbar -->
     <div class="navbar-wrapper">
-        <!-- Left pill: Logo -->
         <div class="nav-pill nav-logo">
             <span class="logo-icon">💦</span>
             <span class="logo-text">BPB Panel <span class="logo-version">v__VERSION__</span></span>
         </div>
-
-        <!-- Center: empty space (flex: 1) -->
-
-        <!-- Right pill: actions -->
         <div class="nav-pill nav-actions">
-            <button type="button" class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Toggle theme">🌙</button>
-            <button type="button" class="nav-btn logout-btn" onclick="logout(event)" title="Logout">⏻</button>
+            <a class="nav-icon-link" id="github-link" href="https://github.com/bia-pain-bache/BPB-Worker-Panel" target="_blank" title="GitHub">
+                <svg xmlns="http://www.w3.org/2000/svg" width="1.3rem" height="1.3rem" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z" />
+                </svg>
+            </a>
+            <button type="button" class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Toggle Theme">🌙</button>
+            <button type="button" id="logout" class="nav-btn logout-btn" onclick="logout(event)" title="Log Out">
+                <span class="material-symbols-rounded">logout</span>
+            </button>
         </div>
     </div>
 
+    <!-- Main Container -->
     <div class="main-container">
+        <!-- Tab Bar -->
         <div class="tab-bar" id="tabBar">
             <div class="tab-list">
-                <button class="tab-btn active" data-tab="common">Common</button>
-                <button class="tab-btn" data-tab="vless">VLESS-Trojan</button>
-                <button class="tab-btn" data-tab="fragment">Fragment</button>
-                <button class="tab-btn" data-tab="warp">Warp</button>
-                <button class="tab-btn" data-tab="warp-pro">Warp Pro</button>
-                <button class="tab-btn" data-tab="routing">Routing</button>
-                <button class="tab-btn" data-tab="external">External</button>
-                <button class="tab-btn" data-tab="telegram">Telegram</button>
-                <button class="tab-btn" data-tab="subscriptions">Subscriptions</button>
+                <button type="button" class="tab-btn active" data-tab="common">🌐 Common</button>
+                <button type="button" class="tab-btn" data-tab="vless">🛡️ VLESS - Trojan</button>
+                <button type="button" class="tab-btn" data-tab="fragment">🧩 Fragment</button>
+                <button type="button" class="tab-btn" data-tab="warp">⚡ Warp & Pro</button>
+                <button type="button" class="tab-btn" data-tab="routing">🔀 Routing</button>
+                <button type="button" class="tab-btn" data-tab="external">📦 External</button>
+                <button type="button" class="tab-btn" data-tab="telegram">🤖 Telegram</button>
+                <button type="button" class="tab-btn" data-tab="backup">🔄 Import/Export</button>
+                <button type="button" class="tab-btn" data-tab="subscriptions">📥 Subscriptions</button>
+                <button type="button" class="tab-btn" data-tab="clients">📱 Clients</button>
+                <button type="button" class="tab-btn" data-tab="admin">📊 Admin & Usage</button>
             </div>
         </div>
 
-        <form id="configForm" onsubmit="updateSettings(event)">
-            <!-- Common Tab -->
+        <!-- Global Floating Apply Changes Button -->
+        <div id="apply" class="form-control apply floating-apply">
+            <button type="submit" id="applyButton" class="button btn-apply disabled" form="configForm" disabled>
+                <span class="material-symbols-rounded">save</span>
+                <span>Apply Changes</span>
+            </button>
+        </div>
+
+        <!-- Settings Form -->
+        <form id="configForm" class="configForm" onsubmit="updateSettings(event)">
+
+            <!-- Tab: Common -->
             <div class="tab-content active" id="tab-common" data-tab="common">
                 <div class="glass-card">
                     <div class="glass-card-header">
-                        <div class="glass-card-title">🌐 DNS & Network</div>
+                        <div class="glass-card-title">🌐 Common Settings</div>
+                        <a class="help-icon" href="https://bia-pain-bache.github.io/BPB-Worker-Panel/configuration/common/" target="_blank" title="Help">
+                            <span class="material-symbols-rounded">info</span>
+                        </a>
                     </div>
-                    <div class="form-group">
-                        <label class="form-label">🏚️ Local DNS</label>
-                        <input class="neon-input" type="text" id="localDNS" name="localDNS" required>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">🌏 Anti Sanction DNS</label>
-                        <input class="neon-input" type="text" id="antiSanctionDNS" name="antiSanctionDNS" required>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">🧢 Fake DNS</label>
-                        <select class="neon-input" id="fakeDNS" name="fakeDNS">
-                            <option value="true">Enabled</option>
-                            <option value="false">Disabled</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">🔛 IPv6</label>
-                        <select class="neon-input" id="enableIPv6" name="enableIPv6">
-                            <option value="true">Enabled</option>
-                            <option value="false">Disabled</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">⛔ Allow LAN</label>
-                        <select class="neon-input" id="allowLANConnection" name="allowLANConnection">
-                            <option value="true">Enabled</option>
-                            <option value="false">Disabled</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">🎚️ Log Level</label>
-                        <select class="neon-input" id="logLevel" name="logLevel">
-                            <option value="none">Disabled</option>
-                            <option value="warning">Warning</option>
-                            <option value="error">Error</option>
-                            <option value="info">Info</option>
-                            <option value="debug">Debug</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="glass-card">
-                    <div class="glass-card-header">
-                        <div class="glass-card-title">🔗 DoH URL</div>
-                    </div>
-                    <div class="sub-url-display" id="doh"></div>
-                </div>
-                <div class="glass-card">
-                    <div class="glass-card-header">
-                        <div class="glass-card-title">📍 IP Information</div>
-                    </div>
-                    <div class="ip-info" id="ipInfo">
-                        <div class="ip-info-item"><div class="label">IP</div><div class="value" id="ip">-</div></div>
-                        <div class="ip-info-item"><div class="label">Country</div><div class="value" id="country">-</div></div>
-                        <div class="ip-info-item"><div class="label">City</div><div class="value" id="city">-</div></div>
-                        <div class="ip-info-item"><div class="label">ISP</div><div class="value" id="isp">-</div></div>
-                        <div class="ip-info-item"><div class="label">CF IP</div><div class="value" id="cf-ip">-</div></div>
-                        <div class="ip-info-item"><div class="label">CF Country</div><div class="value" id="cf-country">-</div></div>
-                        <div class="ip-info-item"><div class="label">CF City</div><div class="value" id="cf-city">-</div></div>
-                        <div class="ip-info-item"><div class="label">CF ISP</div><div class="value" id="cf-isp">-</div></div>
-                    </div>
-                    <button type="button" class="btn-ghost" onclick="fetchIPInfo()" id="refresh-geo-location"><i class="fa fa-refresh"></i> Refresh</button>
-                </div>
-                <div class="glass-card">
-                    <div class="glass-card-header">
-                        <div class="glass-card-title">☁️ Cloudflare Usage Monitor</div>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Account ID</label>
-                        <input class="neon-input" type="text" id="cfAccountId" name="cfAccountId" placeholder="e.g. a1b2c3d4e5f6...">
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">API Token</label>
-                        <div class="password-wrapper">
-                            <input class="neon-input" type="password" id="cfApiToken" name="cfApiToken" placeholder="Workers Analytics Read token">
-                            <button type="button" class="toggle-vis" onclick="togglePassword(this)">👁️</button>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label class="form-label" for="localDNS">🏚️ Local DNS</label>
+                            <input class="neon-input" type="text" id="localDNS" name="localDNS" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="antiSanctionDNS">🛡️ Anti-Sanction DNS</label>
+                            <input class="neon-input" type="text" id="antiSanctionDNS" name="antiSanctionDNS" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="fakeDNS">🎭 Fake DNS</label>
+                            <select class="neon-select" id="fakeDNS" name="fakeDNS">
+                                <option value="true">Enable</option>
+                                <option value="false">Disable</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="enableIPv6">🌐 IPv6 Support</label>
+                            <select class="neon-select" id="enableIPv6" name="enableIPv6">
+                                <option value="true">Enable</option>
+                                <option value="false">Disable</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="allowLANConnection">🏠 Allow LAN</label>
+                            <select class="neon-select" id="allowLANConnection" name="allowLANConnection">
+                                <option value="true">Enable</option>
+                                <option value="false">Disable</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="logLevel">📝 Log Level</label>
+                            <select class="neon-select" id="logLevel" name="logLevel">
+                                <option value="none">None</option>
+                                <option value="warning">Warning</option>
+                                <option value="error">Error</option>
+                                <option value="info">Info</option>
+                                <option value="debug">Debug</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="customDomain">🔗 Custom Domain</label>
+                            <input class="neon-input" type="text" id="customDomain" name="customDomain" placeholder="sub.example.com">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="dohUrl">📡 Underlying DoH</label>
+                            <input class="neon-input" type="text" id="dohUrl" name="dohUrl">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="securePath">🔒 Secure Path</label>
+                            <input class="neon-input" type="text" id="securePath" name="securePath" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="fallback">🔀 Fallback Domain</label>
+                            <input class="neon-input" type="text" id="fallback" name="fallback" placeholder="example.com">
                         </div>
                     </div>
-                    <div class="form-group">
-                        <label class="form-label">Worker / Pages Project Name</label>
-                        <input class="neon-input" type="text" id="cfWorkerName" name="cfWorkerName" placeholder="your-worker-name">
-                    </div>
-                    <div class="btn-group" style="margin-top:12px;">
-                        <button type="button" class="btn-neon" onclick="saveCfCredentials()">💾 Save</button>
-                        <button type="button" class="btn-ghost" onclick="fetchCfUsage()">🔄 Refresh Stats</button>
-                    </div>
-                    <div id="cfUsageCard" class="usage-card" style="display:none;margin-top:16px;"></div>
                 </div>
-
             </div>
 
-            <!-- VLESS-Trojan Tab -->
+            <!-- Tab: VLESS - Trojan -->
             <div class="tab-content" id="tab-vless" data-tab="vless">
                 <div class="glass-card">
                     <div class="glass-card-header">
-                        <div class="glass-card-title">⚙️ VLESS & Trojan Settings</div>
+                        <div class="glass-card-title">🛡️ VLESS & Trojan Configuration</div>
+                        <a class="help-icon" href="https://bia-pain-bache.github.io/BPB-Worker-Panel/configuration/vless-trojan/" target="_blank" title="Help">
+                            <span class="material-symbols-rounded">info</span>
+                        </a>
                     </div>
-                    <div class="form-group">
-                        <label class="form-label">🌏 Remote DNS</label>
-                        <input class="neon-input" type="text" id="remoteDNS" name="remoteDNS" required>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">🚪 Upstream TCP Proxy</label>
-                        <input class="neon-input" type="text" id="upstreamProxy" name="upstreamProxy">
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">✈️ Chain Proxy</label>
-                        <input class="neon-input" type="text" id="outProxy" name="outProxy">
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">✨ Clean IPs / Domains</label>
-                        <textarea class="neon-input" id="cleanIPs" name="cleanIPs" rows="2"></textarea>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">⚙️ Protocols</label>
-                        <div class="proto-group">
-                            <label class="toggle-label">
-                                <input type="checkbox" id="VLConfigs" name="VLConfigs" value="true" onchange="handleProtocolChange(event)">
-                                <span class="toggle-switch"></span> VLESS
-                            </label>
-                            <label class="toggle-label">
-                                <input type="checkbox" id="TRConfigs" name="TRConfigs" value="true" onchange="handleProtocolChange(event)">
-                                <span class="toggle-switch"></span> Trojan
-                            </label>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label class="form-label" for="protocols">Protocols</label>
+                            <select class="neon-select" id="protocols" name="protocols">
+                                <option value="vl,tr">VLESS + Trojan</option>
+                                <option value="vl">VLESS Only</option>
+                                <option value="tr">Trojan Only</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="vlUUID">VLESS UUID</label>
+                            <input class="neon-input font-mono" type="text" id="vlUUID" name="vlUUID" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="trPass">Trojan Password</label>
+                            <input class="neon-input font-mono" type="text" id="trPass" name="trPass" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="remoteDNS">Remote DNS</label>
+                            <input class="neon-input" type="text" id="remoteDNS" name="remoteDNS" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="upstreamProxy">Upstream TCP Proxy</label>
+                            <input class="neon-input" type="text" id="upstreamProxy" name="upstreamProxy" placeholder="ip:port or host:port">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="chainProxy">Chain Outbound Proxy</label>
+                            <input class="neon-input" type="text" id="chainProxy" name="chainProxy" placeholder="socks5://, vless://, trojan://">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="fingerprint">uTLS Fingerprint</label>
+                            <select class="neon-select" id="fingerprint" name="fingerprint">
+                                <option value="chrome">Chrome</option>
+                                <option value="firefox">Firefox</option>
+                                <option value="safari">Safari</option>
+                                <option value="ios">iOS</option>
+                                <option value="android">Android</option>
+                                <option value="edge">Edge</option>
+                                <option value="randomized">Randomized</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="bestPingInterval">Best Ping Interval (s)</label>
+                            <input class="neon-input" type="number" id="bestPingInterval" name="bestPingInterval" min="10" max="90">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="enableTFO">TCP Fast Open (TFO)</label>
+                            <select class="neon-select" id="enableTFO" name="enableTFO">
+                                <option value="true">Enable</option>
+                                <option value="false">Disable</option>
+                            </select>
                         </div>
                     </div>
+
+                    <!-- Ports -->
+                    <div class="form-sub-section">
+                        <div class="sub-title">🔌 Active Ports</div>
+                        <div class="ports-grid">
+                            <div>
+                                <span class="ports-label">TLS Ports:</span>
+                                <div id="tls-ports" class="tags-container"></div>
+                            </div>
+                            <div>
+                                <span class="ports-label">None-TLS Ports:</span>
+                                <div id="non-tls-ports" class="tags-container"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Clean IPs -->
                     <div class="form-group">
-                        <label class="form-label">🔒 TLS Ports</label>
-                        <div class="toggle-group" id="tls-ports"></div>
+                        <label class="form-label" for="cleanIPs">✨ Clean IPs / Domains (One per line)</label>
+                        <textarea class="neon-textarea font-mono" id="cleanIPs" name="cleanIPs" rows="2"></textarea>
                     </div>
-                    <div id="none-tls" class="form-group" style="display:none;">
-                        <label class="form-label">🔓 Non-TLS Ports</label>
-                        <div class="toggle-group" id="non-tls-ports"></div>
+
+                    <!-- Proxy IP Mode & Inputs -->
+                    <div class="form-sub-section">
+                        <div class="sub-title">📡 Proxy IP & Prefixes</div>
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label class="form-label" for="proxyIpMode">Proxy IP Mode</label>
+                                <select class="neon-select" id="proxyIpMode" name="proxyIpMode">
+                                    <option value="proxyip">Proxy IP</option>
+                                    <option value="prefix">Prefix</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="proxyIPs">Proxy IPs</label>
+                            <textarea class="neon-textarea font-mono" id="proxyIPs" name="proxyIPs" rows="2"></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="prefixes">Prefixes</label>
+                            <textarea class="neon-textarea font-mono" id="prefixes" name="prefixes" rows="2"></textarea>
+                        </div>
                     </div>
-                    <div class="form-group">
-                        <label class="form-label">👆 Fingerprint</label>
-                        <select class="neon-input" id="fingerprint" name="fingerprint">
-                            <option value="chrome">chrome</option>
-                            <option value="firefox">firefox</option>
-                            <option value="safari">safari</option>
-                            <option value="ios">ios</option>
-                            <option value="android">android</option>
-                            <option value="edge">edge</option>
-                            <option value="360">360</option>
-                            <option value="qq">qq</option>
-                            <option value="random">random</option>
-                            <option value="randomized">randomized</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">🔄 Best Interval (s)</label>
-                        <input class="neon-input" type="number" id="bestVLTRInterval" name="bestVLTRInterval" min="10" max="90">
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">⏩ TCP Fast Open</label>
-                        <select class="neon-input" id="enableTFO" name="enableTFO">
-                            <option value="true">Enabled</option>
-                            <option value="false">Disabled</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="glass-card">
-                    <div class="glass-card-header">
-                        <div class="glass-card-title">🎭 ECH</div>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">ECH</label>
-                        <select class="neon-input" id="enableECH" name="enableECH">
-                            <option value="true">Enabled</option>
-                            <option value="false">Disabled</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">🧢 ECH Server Name</label>
-                        <input class="neon-input" type="text" id="echServerName" name="echServerName">
-                    </div>
-                </div>
-                <div class="glass-card">
-                    <div class="glass-card-header">
-                        <div class="glass-card-title">📍 Proxy IP</div>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">🎚️ Mode</label>
-                        <select class="neon-input" id="proxyIPMode" name="proxyIPMode">
-                            <option value="proxyip">Proxy IP</option>
-                            <option value="prefix">NAT64</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">📍 Proxy IPs / Domains</label>
-                        <textarea class="neon-input" id="proxyIPs" name="proxyIPs" rows="2"></textarea>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">📍 NAT64 Prefixes</label>
-                        <textarea class="neon-input" id="prefixes" name="prefixes" rows="2"></textarea>
-                    </div>
-                </div>
-                <div class="glass-card">
-                    <div class="glass-card-header">
-                        <div class="glass-card-title">💀 Custom CDN</div>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Addresses</label>
-                        <textarea class="neon-input" id="customCdnAddrs" name="customCdnAddrs" rows="2"></textarea>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Host</label>
-                        <input class="neon-input" type="text" id="customCdnHost" name="customCdnHost">
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">SNI</label>
-                        <input class="neon-input" type="text" id="customCdnSni" name="customCdnSni">
+
+                    <!-- ECH & Custom CDN -->
+                    <div class="form-sub-section">
+                        <div class="sub-title">🔒 ECH & Custom CDN</div>
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label class="form-label" for="enableECH">Encrypted Client Hello (ECH)</label>
+                                <select class="neon-select" id="enableECH" name="enableECH">
+                                    <option value="true">Enable</option>
+                                    <option value="false">Disable</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="echServerName">ECH Server Name</label>
+                                <input class="neon-input" type="text" id="echServerName" name="echServerName" placeholder="cloudflare-ech.com">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="customCdnHost">Custom CDN Host</label>
+                                <input class="neon-input" type="text" id="customCdnHost" name="customCdnHost">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="customCdnSni">Custom CDN SNI</label>
+                                <input class="neon-input" type="text" id="customCdnSni" name="customCdnSni">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="customCdnAddrs">Custom CDN Addresses</label>
+                            <textarea class="neon-textarea font-mono" id="customCdnAddrs" name="customCdnAddrs" rows="2"></textarea>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Fragment Tab -->
+            <!-- Tab: Fragment -->
             <div class="tab-content" id="tab-fragment" data-tab="fragment">
                 <div class="glass-card">
                     <div class="glass-card-header">
                         <div class="glass-card-title">🧩 Xray Fragment</div>
+                        <a class="help-icon" href="https://bia-pain-bache.github.io/BPB-Worker-Panel/configuration/fragment/" target="_blank" title="Help">
+                            <span class="material-symbols-rounded">info</span>
+                        </a>
                     </div>
-                    <div class="form-group">
-                        <label class="form-label">🎚️ Mode</label>
-                        <select class="neon-input" id="fragmentMode" name="fragmentMode" onchange="handleFragmentMode()">
-                            <option value="custom">Custom</option>
-                            <option value="low">Low</option>
-                            <option value="medium">Medium</option>
-                            <option value="high">High</option>
-                            <option value="severe">Severe</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">📐 Length</label>
-                        <div class="min-max-row">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label class="form-label" for="fragmentMode">Fragment Mode</label>
+                            <select class="neon-select" id="fragmentMode" name="fragmentMode" onchange="handleFragmentMode()">
+                                <option value="custom">Custom</option>
+                                <option value="low">Low</option>
+                                <option value="medium">Medium</option>
+                                <option value="high">High</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="fragmentPackets">Packets</label>
+                            <select class="neon-select" id="fragmentPackets" name="fragmentPackets">
+                                <option value="tlshello">TLS Hello</option>
+                                <option value="1-1">1-1</option>
+                                <option value="1-2">1-2</option>
+                                <option value="1-3">1-3</option>
+                                <option value="1-5">1-5</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="fragmentLengthMin">Length Min</label>
                             <input class="neon-input" type="number" id="fragmentLengthMin" name="fragmentLengthMin" min="1" required>
-                            <span>—</span>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="fragmentLengthMax">Length Max</label>
                             <input class="neon-input" type="number" id="fragmentLengthMax" name="fragmentLengthMax" max="500" required>
                         </div>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">🕞 Interval</label>
-                        <div class="min-max-row">
-                            <input class="neon-input" type="number" id="fragmentIntervalMin" name="fragmentIntervalMin" min="1" max="30" required>
-                            <span>—</span>
-                            <input class="neon-input" type="number" id="fragmentIntervalMax" name="fragmentIntervalMax" min="1" max="30" required>
+                        <div class="form-group">
+                            <label class="form-label" for="fragmentDelayMin">Delay Min (ms)</label>
+                            <input class="neon-input" type="number" id="fragmentDelayMin" name="fragmentDelayMin" min="1" max="30" required>
                         </div>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">⛓️ Max Split</label>
-                        <div class="min-max-row">
+                        <div class="form-group">
+                            <label class="form-label" for="fragmentDelayMax">Delay Max (ms)</label>
+                            <input class="neon-input" type="number" id="fragmentDelayMax" name="fragmentDelayMax" min="1" max="30" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="fragmentMaxSplitMin">Max Split Min</label>
                             <input class="neon-input" type="number" id="fragmentMaxSplitMin" name="fragmentMaxSplitMin" min="2">
-                            <span>—</span>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="fragmentMaxSplitMax">Max Split Max</label>
                             <input class="neon-input" type="number" id="fragmentMaxSplitMax" name="fragmentMaxSplitMax" min="2">
                         </div>
                     </div>
-                    <div class="form-group">
-                        <label class="form-label">📦 Packets</label>
-                        <select class="neon-input" id="fragmentPackets" name="fragmentPackets">
-                            <option value="tlshello">tlshello</option>
-                            <option value="1-1">1-1</option>
-                            <option value="1-2">1-2</option>
-                            <option value="1-3">1-3</option>
-                            <option value="1-5">1-5</option>
-                        </select>
-                    </div>
                 </div>
             </div>
 
-            <!-- Warp Tab -->
+            <!-- Tab: Warp & Warp Pro -->
             <div class="tab-content" id="tab-warp" data-tab="warp">
                 <div class="glass-card">
                     <div class="glass-card-header">
-                        <div class="glass-card-title">🌀 Warp General</div>
+                        <div class="glass-card-title">⚡ Warp & Warp Pro</div>
+                        <a class="help-icon" href="https://bia-pain-bache.github.io/BPB-Worker-Panel/configuration/warp/" target="_blank" title="Help">
+                            <span class="material-symbols-rounded">info</span>
+                        </a>
                     </div>
-                    <div class="form-group">
-                        <label class="form-label">🌏 Remote DNS</label>
-                        <input class="neon-input" type="text" id="warpRemoteDNS" name="warpRemoteDNS" required>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">✨ Endpoints</label>
-                        <textarea class="neon-input" id="warpEndpoints" name="warpEndpoints" rows="2" required></textarea>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">🔄 Best Interval (s)</label>
-                        <input class="neon-input" type="number" id="bestWarpInterval" name="bestWarpInterval" min="10" max="90">
-                    </div>
-                    <div class="btn-group">
-                        <button type="button" class="btn-neon" onclick="updateWarpConfigs()">♻️ Update Warp Accounts</button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Warp Pro Tab -->
-            <div class="tab-content" id="tab-warp-pro" data-tab="warp-pro">
-                <div class="glass-card">
-                    <div class="glass-card-header">
-                        <div class="glass-card-title">🌀 Warp Pro</div>
-                    </div>
-                    <div class="glass-card" style="margin-bottom:12px;">
-                        <div class="glass-card-title" style="font-size:0.85rem;margin-bottom:8px;">😵‍💫 MahsaNG Noise</div>
+                    <div class="form-grid">
                         <div class="form-group">
-                            <label class="form-label">Mode</label>
-                            <select class="neon-input" id="knockerNoiseMode" name="knockerNoiseMode" onchange="handleKnockerMode()">
-                                <option value="none">None</option>
-                                <option value="quic">QUIC</option>
-                                <option value="random">Random</option>
-                                <option value="custom">Custom HEX</option>
+                            <label class="form-label" for="warpRemoteDNS">Warp Remote DNS</label>
+                            <input class="neon-input" type="text" id="warpRemoteDNS" name="warpRemoteDNS" required>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="warpBestPingInterval">Best Ping Interval (s)</label>
+                            <input class="neon-input" type="number" id="warpBestPingInterval" name="warpBestPingInterval" min="10">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="warpReservedBytes">Warp Reserved Bytes</label>
+                            <select class="neon-select" id="warpReservedBytes" name="warpReservedBytes">
+                                <option value="true">Enable</option>
+                                <option value="false">Disable</option>
                             </select>
                         </div>
-                        <div class="form-group" id="knockerHexGroup" style="display:none;">
-                            <label class="form-label">Custom HEX Value</label>
-                            <input class="neon-input" type="text" id="knockerNoiseHex" name="knockerNoiseHex" placeholder="Enter hex value">
-                        </div>
                         <div class="form-group">
-                            <label class="form-label">Count</label>
-                            <div class="min-max-row">
-                                <input class="neon-input" type="number" id="noiseCountMin" name="noiseCountMin" min="1" required>
-                                <span>—</span>
-                                <input class="neon-input" type="number" id="noiseCountMax" name="noiseCountMax" min="1" required>
-                            </div>
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label">Size</label>
-                            <div class="min-max-row">
-                                <input class="neon-input" type="number" id="noiseSizeMin" name="noiseSizeMin" min="1" required>
-                                <span>—</span>
-                                <input class="neon-input" type="number" id="noiseSizeMax" name="noiseSizeMax" min="1" required>
-                            </div>
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label">Delay</label>
-                            <div class="min-max-row">
-                                <input class="neon-input" type="number" id="noiseDelayMin" name="noiseDelayMin" min="1" required>
-                                <span>—</span>
-                                <input class="neon-input" type="number" id="noiseDelayMax" name="noiseDelayMax" min="1" required>
-                            </div>
+                            <label class="form-label">Update Warp Accounts</label>
+                            <button type="button" class="btn-neon-action" onclick="updateWarpConfigs(this)">
+                                <span id="warp-update" class="material-symbols-rounded">autorenew</span>
+                                <span>Renew Warp Keys</span>
+                            </button>
                         </div>
                     </div>
-                    <div class="glass-card" style="margin-bottom:12px;">
-                        <div class="glass-card-title" style="font-size:0.85rem;margin-bottom:8px;">🔊 Clash - Amnezia Noise</div>
-                        <div class="form-group">
-                            <label class="form-label">Count</label>
-                            <input class="neon-input" type="number" id="amneziaNoiseCount" name="amneziaNoiseCount" min="1" required>
-                        </div>
-                        <div class="form-group">
-                            <label class="form-label">Size</label>
-                            <div class="min-max-row">
-                                <input class="neon-input" type="number" id="amneziaNoiseSizeMin" name="amneziaNoiseSizeMin" min="1" required>
-                                <span>—</span>
-                                <input class="neon-input" type="number" id="amneziaNoiseSizeMax" name="amneziaNoiseSizeMax" min="1" required>
+                    <div class="form-group">
+                        <label class="form-label" for="warpEndpoints">Warp Endpoints (One per line)</label>
+                        <textarea class="neon-textarea font-mono" id="warpEndpoints" name="warpEndpoints" rows="2" required></textarea>
+                    </div>
+
+                    <!-- Noise Settings -->
+                    <div class="form-sub-section">
+                        <div class="sub-title">🔊 Noise Settings</div>
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label class="form-label" for="knockerNoiseMode">MahsaNG Noise Mode</label>
+                                <input class="neon-input" type="text" id="knockerNoiseMode" name="knockerNoiseMode">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="knockerNoiseCountMin">Noise Count Min</label>
+                                <input class="neon-input" type="number" id="knockerNoiseCountMin" name="knockerNoiseCountMin">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="knockerNoiseCountMax">Noise Count Max</label>
+                                <input class="neon-input" type="number" id="knockerNoiseCountMax" name="knockerNoiseCountMax">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="knockerNoiseSizeMin">Noise Size Min</label>
+                                <input class="neon-input" type="number" id="knockerNoiseSizeMin" name="knockerNoiseSizeMin" min="1">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="knockerNoiseSizeMax">Noise Size Max</label>
+                                <input class="neon-input" type="number" id="knockerNoiseSizeMax" name="knockerNoiseSizeMax" min="1">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="knockerNoiseDelayMin">Noise Delay Min (ms)</label>
+                                <input class="neon-input" type="number" id="knockerNoiseDelayMin" name="knockerNoiseDelayMin">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="knockerNoiseDelayMax">Noise Delay Max (ms)</label>
+                                <input class="neon-input" type="number" id="knockerNoiseDelayMax" name="knockerNoiseDelayMax">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="amneziaNoiseCount">Amnezia Noise Count</label>
+                                <input class="neon-input" type="number" id="amneziaNoiseCount" name="amneziaNoiseCount" min="1">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="amneziaNoiseSizeMin">Amnezia Noise Size Min</label>
+                                <input class="neon-input" type="number" id="amneziaNoiseSizeMin" name="amneziaNoiseSizeMin" min="1">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="amneziaNoiseSizeMax">Amnezia Noise Size Max</label>
+                                <input class="neon-input" type="number" id="amneziaNoiseSizeMax" name="amneziaNoiseSizeMax" min="1">
                             </div>
                         </div>
-                    </div>
-                    <div class="glass-card">
-                        <div class="flex items-center justify-between" style="margin-bottom:12px;">
-                            <div class="glass-card-title" style="font-size:0.85rem;margin:0;">🔊 v2rayNG/v2rayN Noise</div>
-                            <button type="button" class="btn-ghost" onclick="addUdpNoise(true)">+ Add Noise</button>
-                        </div>
-                        <div id="noises" class="noise-grid"></div>
-                    </div>
-                    <div class="glass-card">
-                        <div class="glass-card-title" style="font-size:0.85rem;margin-bottom:12px;">🔌 WireGuard Configs</div>
-                        <div class="btn-group" style="margin:0;">
-                            <button type="button" class="btn-neon" onclick="downloadWarpConfigs(false)">⬇️ Download Normal</button>
-                            <button type="button" class="btn-neon" onclick="downloadWarpConfigs(true)">⬇️ Download Amnezia</button>
+
+                        <!-- UDP Noise Container -->
+                        <div id="udp-noise-container" class="mt-4">
+                            <div class="flex-between mb-2">
+                                <div class="sub-title">v2ray UDP Noise</div>
+                                <button type="button" class="btn-ghost-sm" onclick="addNoise(true)">
+                                    <span class="material-symbols-rounded">add_circle</span>
+                                    <span>Add Noise</span>
+                                </button>
+                            </div>
+                            <div id="noises" class="noises-grid"></div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Routing Tab -->
+            <!-- Tab: Routing -->
             <div class="tab-content" id="tab-routing" data-tab="routing">
                 <div class="glass-card">
                     <div class="glass-card-header">
-                        <div class="glass-card-title">🟩 Bypass Rules</div>
+                        <div class="glass-card-title">🔀 Routing Rules</div>
+                        <a class="help-icon" href="https://bia-pain-bache.github.io/BPB-Worker-Panel/configuration/routing-rules/" target="_blank" title="Help">
+                            <span class="material-symbols-rounded">info</span>
+                        </a>
                     </div>
-                    <div class="toggle-group" id="bypass-rules">
-                        <label class="toggle-label"><input type="checkbox" id="bypassIran" name="bypassIran" value="true"><span class="toggle-switch"></span> Iran</label>
-                        <label class="toggle-label"><input type="checkbox" id="bypassChina" name="bypassChina" value="true"><span class="toggle-switch"></span> China</label>
-                        <label class="toggle-label"><input type="checkbox" id="bypassRussia" name="bypassRussia" value="true"><span class="toggle-switch"></span> Russia</label>
+
+                    <!-- Preset Bypass Rules -->
+                    <div class="form-sub-section">
+                        <div class="sub-title">Bypass Presets</div>
+                        <div id="bypass-rules" class="checkbox-grid">
+                            <label class="custom-checkbox"><input type="checkbox" id="bypassIran" name="bypassIran" value="true"><span>Bypass Iran</span></label>
+                            <label class="custom-checkbox"><input type="checkbox" id="bypassChina" name="bypassChina" value="true"><span>Bypass China</span></label>
+                            <label class="custom-checkbox"><input type="checkbox" id="bypassRussia" name="bypassRussia" value="true"><span>Bypass Russia</span></label>
+                        </div>
                     </div>
-                </div>
-                <div class="glass-card">
-                    <div class="glass-card-header">
-                        <div class="glass-card-title">🟥 Block Rules</div>
+
+                    <!-- Preset Block Rules -->
+                    <div class="form-sub-section">
+                        <div class="sub-title">Block Presets</div>
+                        <div id="block-rules" class="checkbox-grid">
+                            <label class="custom-checkbox"><input type="checkbox" id="blockAds" name="blockAds" value="true"><span>Block Ads</span></label>
+                            <label class="custom-checkbox"><input type="checkbox" id="blockPorn" name="blockPorn" value="true"><span>Block Porn</span></label>
+                            <label class="custom-checkbox"><input type="checkbox" id="blockUDP443" name="blockUDP443" value="true"><span>Block UDP 443</span></label>
+                            <label class="custom-checkbox"><input type="checkbox" id="blockMalware" name="blockMalware" value="true"><span>Block Malware</span></label>
+                            <label class="custom-checkbox"><input type="checkbox" id="blockPhishing" name="blockPhishing" value="true"><span>Block Phishing</span></label>
+                            <label class="custom-checkbox"><input type="checkbox" id="blockCryptominers" name="blockCryptominers" value="true"><span>Block Miners</span></label>
+                        </div>
                     </div>
-                    <div class="toggle-group" id="block-rules">
-                        <label class="toggle-label"><input type="checkbox" id="blockAds" name="blockAds" value="true"><span class="toggle-switch"></span> Ads</label>
-                        <label class="toggle-label"><input type="checkbox" id="blockPorn" name="blockPorn" value="true"><span class="toggle-switch"></span> Porn</label>
-                        <label class="toggle-label"><input type="checkbox" id="blockUDP443" name="blockUDP443" value="true"><span class="toggle-switch"></span> QUIC</label>
-                        <label class="toggle-label"><input type="checkbox" id="blockMalware" name="blockMalware" value="true" onchange="handleRiskyRules(event)"><span class="toggle-switch"></span> Malware</label>
-                        <label class="toggle-label"><input type="checkbox" id="blockPhishing" name="blockPhishing" value="true" onchange="handleRiskyRules(event)"><span class="toggle-switch"></span> Phishing</label>
-                        <label class="toggle-label"><input type="checkbox" id="blockCryptominers" name="blockCryptominers" value="true" onchange="handleRiskyRules(event)"><span class="toggle-switch"></span> Cryptominers</label>
+
+                    <!-- Sanction Rules -->
+                    <div class="form-sub-section">
+                        <div class="sub-title">Anti-Sanction Rules</div>
+                        <div id="bypass-sanction-rules" class="checkbox-grid">
+                            <label class="custom-checkbox"><input type="checkbox" id="bypassOpenAi" name="bypassOpenAi" value="true"><span>OpenAI / ChatGPT</span></label>
+                            <label class="custom-checkbox"><input type="checkbox" id="bypassGoogleAi" name="bypassGoogleAi" value="true"><span>Google AI / Gemini</span></label>
+                            <label class="custom-checkbox"><input type="checkbox" id="bypassMicrosoft" name="bypassMicrosoft" value="true"><span>Microsoft Copilot</span></label>
+                            <label class="custom-checkbox"><input type="checkbox" id="bypassOracle" name="bypassOracle" value="true"><span>Oracle</span></label>
+                            <label class="custom-checkbox"><input type="checkbox" id="bypassDocker" name="bypassDocker" value="true"><span>Docker</span></label>
+                            <label class="custom-checkbox"><input type="checkbox" id="bypassAdobe" name="bypassAdobe" value="true"><span>Adobe</span></label>
+                            <label class="custom-checkbox"><input type="checkbox" id="bypassEpicGames" name="bypassEpicGames" value="true"><span>Epic Games</span></label>
+                            <label class="custom-checkbox"><input type="checkbox" id="bypassIntel" name="bypassIntel" value="true"><span>Intel</span></label>
+                            <label class="custom-checkbox"><input type="checkbox" id="bypassAmd" name="bypassAmd" value="true"><span>AMD</span></label>
+                            <label class="custom-checkbox"><input type="checkbox" id="bypassNvidia" name="bypassNvidia" value="true"><span>NVIDIA</span></label>
+                            <label class="custom-checkbox"><input type="checkbox" id="bypassAsus" name="bypassAsus" value="true"><span>ASUS</span></label>
+                            <label class="custom-checkbox"><input type="checkbox" id="bypassHp" name="bypassHp" value="true"><span>HP</span></label>
+                            <label class="custom-checkbox"><input type="checkbox" id="bypassLenovo" name="bypassLenovo" value="true"><span>Lenovo</span></label>
+                        </div>
                     </div>
-                </div>
-                <div class="glass-card">
-                    <div class="glass-card-header">
-                        <div class="glass-card-title">🟩 Sanction Bypass</div>
-                    </div>
-                    <div class="toggle-group" id="bypass-sanction-rules">
-                        <label class="toggle-label"><input type="checkbox" id="bypassOpenAi" name="bypassOpenAi" value="true"><span class="toggle-switch"></span> ChatGPT</label>
-                        <label class="toggle-label"><input type="checkbox" id="bypassGoogleAi" name="bypassGoogleAi" value="true"><span class="toggle-switch"></span> Google AIs</label>
-                        <label class="toggle-label"><input type="checkbox" id="bypassMicrosoft" name="bypassMicrosoft" value="true"><span class="toggle-switch"></span> Microsoft</label>
-                        <label class="toggle-label"><input type="checkbox" id="bypassOracle" name="bypassOracle" value="true"><span class="toggle-switch"></span> Oracle</label>
-                        <label class="toggle-label"><input type="checkbox" id="bypassDocker" name="bypassDocker" value="true"><span class="toggle-switch"></span> Docker</label>
-                        <label class="toggle-label"><input type="checkbox" id="bypassAdobe" name="bypassAdobe" value="true"><span class="toggle-switch"></span> Adobe</label>
-                        <label class="toggle-label"><input type="checkbox" id="bypassEpicGames" name="bypassEpicGames" value="true"><span class="toggle-switch"></span> Epic Games</label>
-                        <label class="toggle-label"><input type="checkbox" id="bypassIntel" name="bypassIntel" value="true"><span class="toggle-switch"></span> Intel</label>
-                        <label class="toggle-label"><input type="checkbox" id="bypassAmd" name="bypassAmd" value="true"><span class="toggle-switch"></span> AMD</label>
-                        <label class="toggle-label"><input type="checkbox" id="bypassNvidia" name="bypassNvidia" value="true"><span class="toggle-switch"></span> Nvidia</label>
-                        <label class="toggle-label"><input type="checkbox" id="bypassAsus" name="bypassAsus" value="true"><span class="toggle-switch"></span> Asus</label>
-                        <label class="toggle-label"><input type="checkbox" id="bypassHp" name="bypassHp" value="true"><span class="toggle-switch"></span> HP</label>
-                        <label class="toggle-label"><input type="checkbox" id="bypassLenovo" name="bypassLenovo" value="true"><span class="toggle-switch"></span> Lenovo</label>
-                    </div>
-                </div>
-                <div class="glass-card">
-                    <div class="glass-card-header">
-                        <div class="glass-card-title">✏️ Custom Rules</div>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">🟩 Bypass IPs/Domains</label>
-                        <textarea class="neon-input" id="customBypassRules" name="customBypassRules" rows="2"></textarea>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">🟥 Block IPs/Domains</label>
-                        <textarea class="neon-input" id="customBlockRules" name="customBlockRules" rows="2"></textarea>
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">🟩 Bypass Sanction Domains</label>
-                        <textarea class="neon-input" id="customBypassSanctionRules" name="customBypassSanctionRules" rows="2"></textarea>
+
+                    <!-- Custom Rules Textareas -->
+                    <div class="form-sub-section">
+                        <div class="sub-title">Custom Rules</div>
+                        <div class="form-group">
+                            <label class="form-label" for="customBypassRules">Custom Bypass Domains / IPs</label>
+                            <textarea class="neon-textarea font-mono" id="customBypassRules" name="customBypassRules" rows="2"></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="customBlockRules">Custom Block Domains / IPs</label>
+                            <textarea class="neon-textarea font-mono" id="customBlockRules" name="customBlockRules" rows="2"></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="customBypassSanctionRules">Custom Anti-Sanction Domains / IPs</label>
+                            <textarea class="neon-textarea font-mono" id="customBypassSanctionRules" name="customBypassSanctionRules" rows="2"></textarea>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <!-- External Tab -->
+            <!-- Tab: External Configs -->
             <div class="tab-content" id="tab-external" data-tab="external">
                 <div class="glass-card">
                     <div class="glass-card-header">
-                        <div class="glass-card-title">🔗 External Raw Configs</div>
+                        <div class="glass-card-title">📦 External Configs & Subs</div>
+                        <a class="help-icon" href="https://bia-pain-bache.github.io/BPB-Worker-Panel/configuration/external-configs/" target="_blank" title="Help">
+                            <span class="material-symbols-rounded">info</span>
+                        </a>
                     </div>
                     <div class="form-group">
-                        <label class="form-label">Subscriptions</label>
-                        <textarea class="neon-input" id="customSubs" name="customSubs" rows="3" wrap="off"></textarea>
+                        <label class="form-label" for="customSubs">External Subscriptions (One per line)</label>
+                        <textarea class="neon-textarea font-mono" id="customSubs" name="customSubs" rows="3" wrap="off"></textarea>
                     </div>
                     <div class="form-group">
-                        <label class="form-label">Single Configs</label>
-                        <textarea class="neon-input" id="customConfigs" name="customConfigs" rows="3" wrap="off"></textarea>
+                        <label class="form-label" for="customConfigs">External Raw Configs (One per line)</label>
+                        <textarea class="neon-textarea font-mono" id="customConfigs" name="customConfigs" rows="3" wrap="off"></textarea>
                     </div>
                 </div>
             </div>
 
-            <!-- Telegram Tab -->
-            <div class="tab-content" id="tab-telegram" data-tab="telegram">
+            <!-- Tab: Import / Export -->
+            <div class="tab-content" id="tab-backup" data-tab="backup">
                 <div class="glass-card">
                     <div class="glass-card-header">
-                        <div class="glass-card-title">🤖 Telegram Bot</div>
+                        <div class="glass-card-title">🔄 Import & Export Settings</div>
+                        <a class="help-icon" href="https://bia-pain-bache.github.io/BPB-Worker-Panel/configuration/import-export/" target="_blank" title="Help">
+                            <span class="material-symbols-rounded">info</span>
+                        </a>
                     </div>
-                    <div class="form-group">
-                        <label class="form-label">🔑 Bot Token</label>
-                        <div class="password-wrapper">
-                            <input class="neon-input" type="password" id="telegramBotToken" name="telegramBotToken">
-                            <button type="button" class="toggle-vis" onclick="togglePassword(this)">👁️</button>
+
+                    <div class="form-sub-section">
+                        <div class="sub-title">Remote Settings URL</div>
+                        <div class="form-group">
+                            <label class="form-label" for="remoteSettings">Remote URL</label>
+                            <input class="neon-input" type="text" id="remoteSettings" name="remoteSettings" placeholder="https://.../sub/share-settings">
+                        </div>
+                        <div class="flex-actions mt-3">
+                            <button type="button" id="fetchSettingsBtn" class="btn-neon-action" onclick="updateRemoteSettings(this)">
+                                <span class="material-symbols-rounded">refresh</span>
+                                <span>Fetch from Remote</span>
+                            </button>
                         </div>
                     </div>
-                    <div class="form-group">
-                        <label class="form-label">🆔 Admin Telegram ID</label>
-                        <input class="neon-input" type="text" id="telegramAdminId" name="telegramAdminId">
-                    </div>
-                    <div class="btn-group">
-                        <button type="button" class="btn-neon" onclick="setupTelegramWebhook()">🔗 Setup Webhook</button>
+
+                    <div class="form-sub-section">
+                        <div class="sub-title">Backup & Restore File (.dat)</div>
+                        <div class="flex-actions">
+                            <button type="button" class="btn-neon-action" onclick="exportSettings()">
+                                <span class="material-symbols-rounded">cloud_download</span>
+                                <span>Export Settings File</span>
+                            </button>
+                            <button type="button" class="btn-neon-action" onclick="document.getElementById('fileInput').click()">
+                                <span class="material-symbols-rounded">cloud_upload</span>
+                                <span>Import Settings File</span>
+                            </button>
+                            <input type="file" id="fileInput" accept=".dat" style="display: none;" onchange="importSettings(event)">
+                        </div>
                     </div>
                 </div>
             </div>
         </form>
 
-        <!-- Subscriptions Tab (outside form) -->
+        <!-- Tab: Telegram Bot (Standalone Form) -->
+        <div class="tab-content" id="tab-telegram" data-tab="telegram">
+            <div class="glass-card">
+                <div class="glass-card-header">
+                    <div class="glass-card-title">🤖 Telegram Bot Settings</div>
+                    <a class="help-icon" href="https://bia-pain-bache.github.io/BPB-Worker-Panel/configuration/telegram-bot/" target="_blank" title="Help">
+                        <span class="material-symbols-rounded">info</span>
+                    </a>
+                </div>
+                <form id="telegramForm" class="configForm" onsubmit="setupTelegramBot(event)">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label class="form-label" for="telegramBotToken">Telegram Bot Token</label>
+                            <input class="neon-input font-mono" type="text" id="telegramBotToken" name="telegramBotToken" placeholder="123456789:ABCdefGHIjklMNOpqrsTUVwxyz">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="telegramUserId">Telegram Admin User ID</label>
+                            <input class="neon-input font-mono" type="text" id="telegramUserId" name="telegramUserId" placeholder="123456789">
+                        </div>
+                    </div>
+                    <div class="flex-actions mt-4">
+                        <button type="submit" id="setup-telegram" class="btn-neon" disabled>
+                            <span class="material-symbols-rounded">smart_toy</span>
+                            <span>Set Telegram Bot</span>
+                        </button>
+                        <button type="button" id="remove-telegram" class="btn-danger-action" onclick="removeTelegramBot(this)" disabled>
+                            <span class="material-symbols-rounded">delete</span>
+                            <span>Remove Bot</span>
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Tab: Subscriptions -->
         <div class="tab-content" id="tab-subscriptions" data-tab="subscriptions">
             <div class="glass-card">
                 <div class="glass-card-header">
-                    <div class="glass-card-title">💠 Normal</div>
+                    <div class="glass-card-title">📥 Subscriptions & Links</div>
                 </div>
-                <div class="sub-row">
-                    <div><b>v2rayNG / MahsaNG / v2rayN</b><br><span class="sub-app-tag">Xray</span></div>
-                    <div class="sub-actions">
-                        <button class="btn-icon" onclick="openQR('normal','xray','Normal','Normal')" title="QR">📱</button>
-                        <button class="btn-icon" onclick="subURL('normal','xray','Normal')" title="Copy URL">📋</button>
-                        <button class="btn-icon" onclick="dlURL('normal','xray')" title="Download">⬇️</button>
-                    </div>
+                <div class="doh-wrapper mb-4">
+                    <span class="doh-label">📡 Underlying DoH URL:</span>
+                    <span id="doh" class="doh-output font-mono"></span>
                 </div>
-                <div class="sub-row">
-                    <div><b>Sing-box</b><br><span class="sub-app-tag">Sing-box</span></div>
-                    <div class="sub-actions">
-                        <button class="btn-icon" onclick="openQR('normal','sing-box','Normal','Normal',true)" title="QR">📱</button>
-                        <button class="btn-icon" onclick="subURL('normal','sing-box','Normal')" title="Copy URL">📋</button>
-                        <button class="btn-icon" onclick="dlURL('normal','sing-box')" title="Download">⬇️</button>
-                    </div>
-                </div>
-                <div class="sub-row">
-                    <div><b>Clash Meta / Verge / FLClash</b><br><span class="sub-app-tag">Clash</span></div>
-                    <div class="sub-actions">
-                        <button class="btn-icon" onclick="openQR('normal','clash','Normal','Normal')" title="QR">📱</button>
-                        <button class="btn-icon" onclick="subURL('normal','clash','Normal')" title="Copy URL">📋</button>
-                        <button class="btn-icon" onclick="dlURL('normal','clash')" title="Download">⬇️</button>
-                    </div>
-                </div>
+                <!-- Dynamic subscriptions container populated by script.js -->
+                <div id="subscriptions" class="subscriptions-container"></div>
             </div>
+        </div>
+
+        <!-- Tab: Supported Clients -->
+        <div class="tab-content" id="tab-clients" data-tab="clients">
             <div class="glass-card">
                 <div class="glass-card-header">
-                    <div class="glass-card-title">🧩 Fragment</div>
+                    <div class="glass-card-title">📱 Supported Clients</div>
+                    <a class="help-icon" href="https://bia-pain-bache.github.io/BPB-Worker-Panel/usage/supported-clients/" target="_blank" title="Help">
+                        <span class="material-symbols-rounded">info</span>
+                    </a>
                 </div>
-                <div class="sub-row">
-                    <div><b>v2rayNG / MahsaNG / v2rayN</b><br><span class="sub-app-tag">Xray</span></div>
-                    <div class="sub-actions">
-                        <button class="btn-icon" onclick="openQR('fragment','xray','Fragment','Fragment')" title="QR">📱</button>
-                        <button class="btn-icon" onclick="subURL('fragment','xray','Fragment')" title="Copy URL">📋</button>
-                        <button class="btn-icon" onclick="dlURL('fragment','xray')" title="Download">⬇️</button>
-                    </div>
-                </div>
-                <div class="sub-row">
-                    <div><b>Sing-box</b><br><span class="sub-app-tag">Sing-box</span></div>
-                    <div class="sub-actions">
-                        <button class="btn-icon" onclick="openQR('fragment','sing-box','Fragment','Fragment',true)" title="QR">📱</button>
-                        <button class="btn-icon" onclick="subURL('fragment','sing-box','Fragment')" title="Copy URL">📋</button>
-                        <button class="btn-icon" onclick="dlURL('fragment','sing-box')" title="Download">⬇️</button>
-                    </div>
-                </div>
-            </div>
-            <div class="glass-card">
-                <div class="glass-card-header">
-                    <div class="glass-card-title">📄 Raw</div>
-                </div>
-                <div class="sub-row">
-                    <div><b>v2rayNG / v2rayN / Streisand / etc</b><br><span class="sub-app-tag">Xray</span></div>
-                    <div class="sub-actions">
-                        <button class="btn-icon" onclick="openQR('raw','xray','Raw','Raw')" title="QR">📱</button>
-                        <button class="btn-icon" onclick="subURL('raw','xray','Raw')" title="Copy URL">📋</button>
-                        <button class="btn-icon" onclick="dlURL('raw','xray')" title="Download">⬇️</button>
-                    </div>
-                </div>
-                <div class="sub-row">
-                    <div><b>Sing-box clients</b><br><span class="sub-app-tag">Sing-box</span></div>
-                    <div class="sub-actions">
-                        <button class="btn-icon" onclick="openQR('raw','sing-box','Raw','Raw',true)" title="QR">📱</button>
-                        <button class="btn-icon" onclick="subURL('raw','sing-box','Raw')" title="Copy URL">📋</button>
-                        <button class="btn-icon" onclick="dlURL('raw','sing-box')" title="Download">⬇️</button>
-                    </div>
-                </div>
-            </div>
-            <div class="glass-card">
-                <div class="glass-card-header">
-                    <div class="glass-card-title">🌀 Warp</div>
-                </div>
-                <div class="sub-row">
-                    <div><b>v2rayNG / v2rayN / Streisand</b><br><span class="sub-app-tag">Xray</span></div>
-                    <div class="sub-actions">
-                        <button class="btn-icon" onclick="openQR('warp','xray','Warp','Warp')" title="QR">📱</button>
-                        <button class="btn-icon" onclick="subURL('warp','xray','Warp')" title="Copy URL">📋</button>
-                        <button class="btn-icon" onclick="dlURL('warp','xray')" title="Download">⬇️</button>
-                    </div>
-                </div>
-                <div class="sub-row">
-                    <div><b>Sing-box</b><br><span class="sub-app-tag">Sing-box</span></div>
-                    <div class="sub-actions">
-                        <button class="btn-icon" onclick="openQR('warp','sing-box','Warp','Warp',true)" title="QR">📱</button>
-                        <button class="btn-icon" onclick="subURL('warp','sing-box','Warp')" title="Copy URL">📋</button>
-                        <button class="btn-icon" onclick="dlURL('warp','sing-box')" title="Download">⬇️</button>
-                    </div>
-                </div>
-                <div class="sub-row">
-                    <div><b>Clash Meta / Verge / FLClash</b><br><span class="sub-app-tag">Clash</span></div>
-                    <div class="sub-actions">
-                        <button class="btn-icon" onclick="openQR('warp','clash','Warp','Warp')" title="QR">📱</button>
-                        <button class="btn-icon" onclick="subURL('warp','clash','Warp')" title="Copy URL">📋</button>
-                        <button class="btn-icon" onclick="dlURL('warp','clash')" title="Download">⬇️</button>
-                    </div>
-                </div>
-            </div>
-            <div class="glass-card">
-                <div class="glass-card-header">
-                    <div class="glass-card-title">🌀 Warp Pro</div>
-                </div>
-                <div class="sub-row">
-                    <div><b>v2rayNG / v2rayN / Streisand</b><br><span class="sub-app-tag">Xray</span></div>
-                    <div class="sub-actions">
-                        <button class="btn-icon" onclick="openQR('warp-pro','xray','Warp Pro','Warp Pro')" title="QR">📱</button>
-                        <button class="btn-icon" onclick="subURL('warp-pro','xray','Warp Pro')" title="Copy URL">📋</button>
-                        <button class="btn-icon" onclick="dlURL('warp-pro','xray')" title="Download">⬇️</button>
-                    </div>
-                </div>
-                <div class="sub-row">
-                    <div><b>Clash Meta / Verge / FLClash</b><br><span class="sub-app-tag">Clash</span></div>
-                    <div class="sub-actions">
-                        <button class="btn-icon" onclick="openQR('warp-pro','clash','Warp Pro','Warp Pro')" title="QR">📱</button>
-                        <button class="btn-icon" onclick="subURL('warp-pro','clash','Warp Pro')" title="Copy URL">📋</button>
-                        <button class="btn-icon" onclick="dlURL('warp-pro','clash')" title="Download">⬇️</button>
-                    </div>
-                </div>
-                <div class="sub-row">
-                    <div><b>🔌 WireGuard</b><br><span class="sub-app-tag">WireGuard</span></div>
-                    <div class="sub-actions">
-                        <button class="btn-icon" onclick="downloadWarpConfigs(false)" title="Download Normal">⬇️</button>
-                        <button class="btn-icon" onclick="downloadWarpConfigs(true)" title="Download Amnezia">🌀</button>
-                    </div>
+                <div class="table-container">
+                    <table class="glass-table">
+                        <thead>
+                            <tr>
+                                <th>Client Name</th>
+                                <th>Min Version</th>
+                                <th>Download</th>
+                            </tr>
+                        </thead>
+                        <tbody id="supported-clients"></tbody>
+                    </table>
                 </div>
             </div>
         </div>
 
-        <!-- Apply / Actions Bar -->
-        <div class="glass-card" style="position:sticky;bottom:16px;z-index:50;">
-            <div class="flex items-center justify-between gap-4" style="flex-wrap:wrap;">
-                <div class="btn-group" style="margin:0;">
-                    <button type="submit" class="btn-neon" id="applyButton" form="configForm" disabled>💾 Apply Settings</button>
-                    <button type="button" class="btn-ghost" onclick="resetSettings()">↺ Reset</button>
+        <!-- Tab: Admin & Usage -->
+        <div class="tab-content" id="tab-admin" data-tab="admin">
+            <div class="glass-card">
+                <div class="glass-card-header">
+                    <div class="glass-card-title">📊 Cloudflare Worker Usage (Last 24h)</div>
                 </div>
-                <div class="btn-group" style="margin:0;">
-                    <button type="button" class="btn-ghost" onclick="exportSettings()">📤 Export</button>
-                    <button type="button" class="btn-ghost" onclick="importSettings()">📥 Import</button>
-                    <input type="file" id="fileInput" accept=".dat" style="display:none;" onchange="uploadSettings(event)">
+                <div class="usage-cards-grid">
+                    <div class="usage-card">
+                        <div class="usage-card-title">💦 Panel Worker Usage</div>
+                        <div class="usage-stat"><b id="panel-usage">0</b> requests</div>
+                        <div class="usage-pct"><span id="panel-pct">0</span>% of daily limit (100k)</div>
+                    </div>
+                    <div class="usage-card">
+                        <div class="usage-card-title">☁️ Total Account Usage</div>
+                        <div class="usage-stat"><b id="total-usage">0</b> requests</div>
+                        <div class="usage-pct"><span id="total-pct">0</span>% of daily limit (100k)</div>
+                    </div>
+                </div>
+
+                <!-- Geolocation Info -->
+                <div class="form-sub-section mt-4">
+                    <div class="flex-between mb-2">
+                        <div class="sub-title">🌍 Outbound IP Geolocation</div>
+                        <button type="button" id="refresh-geo-location" class="btn-ghost-sm" onclick="fetchIPInfo()">
+                            <span class="material-symbols-rounded">refresh</span>
+                            <span>Refresh IP</span>
+                        </button>
+                    </div>
+                    <div class="table-container">
+                        <table id="ips" class="glass-table">
+                            <thead>
+                                <tr>
+                                    <th>Target</th>
+                                    <th>IP</th>
+                                    <th>Country</th>
+                                    <th>City</th>
+                                    <th>ISP</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>Cloudflare Edge</td>
+                                    <td id="cf-ip">-</td>
+                                    <td id="cf-country">-</td>
+                                    <td id="cf-city">-</td>
+                                    <td id="cf-isp">-</td>
+                                </tr>
+                                <tr>
+                                    <td>Outbound Direct</td>
+                                    <td id="ip">-</td>
+                                    <td id="country">-</td>
+                                    <td id="city">-</td>
+                                    <td id="isp">-</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Admin Actions -->
+                <div class="form-sub-section mt-4">
+                    <div class="sub-title">⚙️ Admin Actions</div>
+                    <div class="admin-actions-grid">
+                        <div class="admin-action-item">
+                            <span>Update Panel to Latest Release</span>
+                            <button id="updatePanel" class="btn-neon-action" onclick="updatePanel(this)" disabled>
+                                <span class="material-symbols-rounded">upgrade</span>
+                                <span>Update Panel</span>
+                            </button>
+                        </div>
+                        <div class="admin-action-item">
+                            <span>Change Admin Password</span>
+                            <button id="openResetPass" class="btn-neon-action" onclick="openResetPass(event)">
+                                <span class="material-symbols-rounded">key_vertical</span>
+                                <span>Reset Password</span>
+                            </button>
+                        </div>
+                        <div class="admin-action-item">
+                            <span>Reset All Panel Settings to Default</span>
+                            <button type="button" class="btn-danger-action" onclick="resetPanelSettings(this)">
+                                <span class="material-symbols-rounded">settings_backup_restore</span>
+                                <span>Reset Settings</span>
+                            </button>
+                        </div>
+                        <div class="admin-action-item">
+                            <span>Permanently Delete Panel Worker</span>
+                            <button id="deletePanel" class="btn-danger-action" onclick="deletePanel(this)">
+                                <span class="material-symbols-rounded">delete</span>
+                                <span>Delete Panel</span>
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- QR Modal -->
-    <div class="modal-overlay hidden" id="qrModal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3 id="qrcodeTitle">QR Code</h3>
-                <button class="modal-close" onclick="closeQR()">✕</button>
-            </div>
-            <div class="qr-container" id="qrcode-container"></div>
-        </div>
-    </div>
-
+    <!-- Modals -->
     <!-- Reset Password Modal -->
-    <div class="modal-overlay hidden" id="resetPassModal">
-        <div class="modal-content">
+    <div id="resetPassModal" class="modal" hidden>
+        <div class="modal-content glass-card">
             <div class="modal-header">
-                <h3>🔑 Set Password</h3>
-                <button class="modal-close" onclick="closeResetPass()">✕</button>
+                <span class="modal-title">🔐 Change Password</span>
+                <span id="closeResetPass" class="material-symbols-rounded modal-close" onclick="closeResetPass()">close</span>
             </div>
-            <div class="form-group">
-                <label class="form-label">New Password</label>
-                <input class="neon-input" type="password" id="newPassword" placeholder="Min 8 chars, 1 capital, 1 number">
-            </div>
-            <div class="form-group">
-                <label class="form-label">Confirm</label>
-                <input class="neon-input" type="password" id="confirmPassword" placeholder="Repeat password">
-            </div>
-            <div class="text-sm text-muted" id="passwordError" style="margin-bottom:8px;"></div>
-            <div class="btn-group">
-                <button class="btn-neon" onclick="resetPassword(event)">🔑 Set Password</button>
-                <button class="btn-ghost" onclick="closeResetPass()">Cancel</button>
-            </div>
+            <form onsubmit="resetPassword(event)">
+                <div id="usernameContainer" class="form-group" style="display: none;">
+                    <label class="form-label" for="username">Cloudflare Email</label>
+                    <input class="neon-input" type="text" id="username" name="username" autocomplete="on">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="newPassword">New Password</label>
+                    <input class="neon-input" type="password" id="newPassword" name="newPassword" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="confirmPassword">Confirm Password</label>
+                    <input class="neon-input" type="password" id="confirmPassword" name="confirmPassword" required>
+                </div>
+                <div id="passwordError" class="password-error"></div>
+                <button id="changePasswordBtn" type="submit" class="btn-neon mt-3">
+                    <span class="material-symbols-rounded">save</span>
+                    <span>Save Password</span>
+                </button>
+            </form>
         </div>
     </div>
 
-    <!-- Toast Container -->
-    <div class="toast-container" id="toastContainer"></div>
-
-    <div id="toast-container" class="toast-container"></div>
-
-    <div id="confirm-modal" class="modal-overlay" style="display:none;">
-        <div class="modal-box glass-card">
-            <div class="modal-icon" id="confirmModalIcon">⚠️</div>
-            <h3 class="modal-title" id="confirmModalTitle">Are you sure?</h3>
-            <p class="modal-message" id="confirmModalMessage"></p>
-            <div class="modal-actions">
-                <button class="btn-modal-cancel" id="confirmModalCancel">Cancel</button>
-                <button class="btn-modal-confirm" id="confirmModalConfirm">Confirm</button>
+    <!-- QR Code Modal -->
+    <div id="qrModal" class="modal" hidden>
+        <div class="modal-content glass-card qr-modal-content">
+            <div class="modal-header">
+                <span id="qrcodeTitle" class="modal-title">📱 Scan QR Code</span>
+                <span class="material-symbols-rounded modal-close" onclick="closeQRCode()">close</span>
             </div>
+            <div id="qrcode-container" class="qr-code-body"></div>
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
-    <script>__SCRIPT__</script>
+    <!-- Toast Notification Container -->
+    <div id="toastContainer" class="toast-container"></div>
+
+    <!-- Message Template for Toasts / Modals -->
+    <template id="message-template">
+        <div class="modal" hidden>
+            <div class="modal-content glass-card message-modal-content">
+                <div class="message-header">
+                    <div class="message-heading">
+                        <span class="material-symbols-rounded message-icon"></span>
+                        <span class="message-title"></span>
+                    </div>
+                    <span class="material-symbols-rounded modal-close">close</span>
+                </div>
+                <div class="message-body">
+                    <pre class="message-text font-mono"></pre>
+                    <div class="message-buttons">
+                        <button type="button" class="btn-neon message-ok-btn">
+                            <span class="material-symbols-rounded">check_circle</span>
+                            <span>Ok</span>
+                        </button>
+                        <button type="button" class="btn-ghost-sm message-cancel-btn">
+                            <span class="material-symbols-rounded">cancel</span>
+                            <span>Cancel</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <script>
+        /* JS_PLACEHOLDER */
+    </script>
 </body>
+
 </html>

@@ -1,68 +1,6 @@
-// Theme initialization
-(function() {
-    const savedTheme = localStorage.getItem('bpb-theme');
-    const theme = savedTheme === 'dark' ? 'dark' : 'light';
-    document.documentElement.setAttribute('data-theme', theme);
-})();
-
-function showToast(message, type = 'info', duration = 3000) {
-    const icons = { success: '✅', error: '❌', warning: '⚠️', info: 'ℹ️' };
-    const container = document.getElementById('toast-container');
-    const toast = document.createElement('div');
-    toast.className = `toast ${type}`;
-    toast.innerHTML = `
-        <span class="toast-icon">${icons[type]}</span>
-        <span class="toast-message">${message}</span>
-        <button class="toast-close" onclick="this.parentElement.remove()">×</button>
-        <div class="toast-progress"></div>
-    `;
-    container.appendChild(toast);
-    setTimeout(() => {
-        toast.style.animation = 'toastOut 0.3s ease forwards';
-        setTimeout(() => toast.remove(), 300);
-    }, duration);
-}
-
-function showConfirm(message, onConfirm, options = {}) {
-    const modal = document.getElementById('confirm-modal');
-    const title = document.getElementById('confirmModalTitle');
-    const msg = document.getElementById('confirmModalMessage');
-    const icon = document.getElementById('confirmModalIcon');
-    const confirmBtn = document.getElementById('confirmModalConfirm');
-    const cancelBtn = document.getElementById('confirmModalCancel');
-
-    icon.textContent = options.icon || '⚠️';
-    title.textContent = options.title || 'Are you sure?';
-    msg.textContent = message;
-    confirmBtn.textContent = options.confirmText || 'Confirm';
-    cancelBtn.textContent = options.cancelText || 'Cancel';
-
-    modal.style.display = 'flex';
-
-    const handleConfirm = () => {
-        modal.style.display = 'none';
-        cleanup();
-        if (onConfirm) onConfirm();
-    };
-    const handleCancel = () => {
-        modal.style.display = 'none';
-        cleanup();
-        if (options.onCancel) options.onCancel();
-    };
-    const cleanup = () => {
-        confirmBtn.removeEventListener('click', handleConfirm);
-        cancelBtn.removeEventListener('click', handleCancel);
-    };
-
-    confirmBtn.addEventListener('click', handleConfirm);
-    cancelBtn.addEventListener('click', handleCancel);
-
-    modal.addEventListener('click', (e) => {
-        if (e.target === modal) handleCancel();
-    }, { once: true });
-}
-
-const form = document.getElementById("configForm");
+const defaultHttpsPorts = [443, 8443, 2053, 2083, 2087, 2096];
+const defaultHttpPorts = [80, 8080, 8880, 2052, 2082, 2086, 2095];
+const proxyForm = document.getElementById('configForm');
 const [
     selectElements,
     numInputElements,
@@ -75,112 +13,166 @@ const [
     'input:not([type=file])',
     'textarea',
     'input[type=checkbox]'
-].map(query => form.querySelectorAll(query));
+].map(query => proxyForm.querySelectorAll(query));
 
-const defaultHttpsPorts = [443, 8443, 2053, 2083, 2087, 2096];
-const defaultHttpPorts = [80, 8080, 8880, 2052, 2082, 2086, 2095];
+getUsage();
+initPanel();
+fetchIPInfo();
 
-fetch('/panel/settings')
-    .then(async response => response.json())
-    .then(({ success, status, message, body }) => {
+async function initPanel(settings, tgSettings, subscriptions, clients) {
+    try {
+        if (!settings) {
+            const nocache = Date.now();
+            const res = await fetch(`./panel/settings?nocache=${nocache}`, { cache: 'no-store' });
+            const { success, status, message, body } = await res.json();
 
-        if (status === 401 && !body.isPassSet) {
-            const closeBtn = document.querySelector(".close");
-            openResetPass();
-            if (closeBtn) closeBtn.style.display = 'none';
+            if (status === 401 && !body.isPassSet) {
+                const closeBtn = document.querySelector('.modal-close');
+                openResetPass();
+                closeBtn.style.visibility = 'hidden';
+            }
+
+            if (!success) {
+                throw new Error(`status ${status} - ${message}`);
+            }
+
+            settings = body.proxySettings;
+            tgSettings = body.telegramSettings;
+            subscriptions = body.subscriptions;
+            clients = body.clients;
+            checkVersion(settings.panelVersion);
         }
+
+        renderPanel(settings, tgSettings, subscriptions, clients);
+    } catch (error) {
+        console.error('Panel initiation error:', error);
+    }
+}
+
+async function getUsage() {
+    try {
+        const nocache = Date.now();
+        const res = await fetch(`./panel/usage?nocache=${nocache}`, { cache: 'no-store' });
+        const { success, status, message, body } = await res.json();
 
         if (!success) {
             throw new Error(`status ${status} - ${message}`);
         }
 
-        const { subPath, proxySettings } = body;
-        globalThis.subPath = encodeURIComponent(subPath);
-        initiatePanel(proxySettings);
-    })
-    .catch(error => console.error("Data query error:", error.message || error))
-    .finally(() => {
-        window.onclick = (event) => {
-            const qrModal = document.getElementById('qrModal');
-            const qrcodeContainer = document.getElementById('qrcode-container');
+        const { total, worker } = body;
+        const totalReq = document.getElementById('total-usage');
+        totalReq.textContent = total.toLocaleString('en-US');
+        totalReq.style.fontSize = 'larger';
+        const totalPct = document.getElementById('total-pct');
+        const totalPctVal = Math.ceil(Number(total) / 100000 * 100);
+        totalPct.textContent = totalPctVal;
+        if (totalPctVal > 80) totalPct.style.color = 'var(--color-icon-red)';
 
-            if (event.target == qrModal) {
-                qrModal.style.display = "none";
-                if (qrcodeContainer && qrcodeContainer.lastElementChild) {
-                    qrcodeContainer.lastElementChild.remove();
-                }
-            }
-        }
-
-        document.querySelectorAll(".toggle-password").forEach(toggle => {
-            toggle.addEventListener("click", function () {
-                const input = this.previousElementSibling;
-                const isPassword = input.type === "password";
-                input.type = isPassword ? "text" : "password";
-                this.textContent = isPassword ? "visibility" : "visibility_off";
-            });
-        });
-    });
-
-function initiatePanel(proxySettings) {
-    const {
-        VLConfigs,
-        TRConfigs,
-        ports,
-        xrayUdpNoises
-    } = proxySettings;
-
-    Object.assign(globalThis, {
-        activeProtocols: VLConfigs + TRConfigs,
-        activeTlsPorts: ports.filter(port => defaultHttpsPorts.includes(port)),
-        xrayNoiseCount: xrayUdpNoises.length,
-    });
-
-    populatePanel(proxySettings);
-    renderPortsBlock(ports.map(Number));
-    renderUdpNoiseBlock(xrayUdpNoises);
-    initiateForm();
-    fetchIPInfo();
-    if (proxySettings.cfAccountId) {
-        setTimeout(fetchCfUsage, 500);
+        const panelReq = document.getElementById('panel-usage');
+        panelReq.textContent = worker.toLocaleString('en-US');
+        panelReq.style.fontSize = 'larger';
+        const panelPct = document.getElementById('panel-pct');
+        const panelPctVal = Math.ceil(Number(worker) / 100000 * 100);
+        panelPct.textContent = panelPctVal;
+        if (panelPctVal > 80) panelPct.style.color = 'var(--color-icon-red)';
+    } catch (error) {
+        console.error('Failed to get usage from API:', error);
     }
 }
 
-function populatePanel(proxySettings) {
-    document.getElementById("doh").textContent = `${window.origin}/dns-query/${decodeURIComponent(globalThis.subPath)}`;
+async function checkVersion(panelVersion) {
+    try {
+        const res = await fetch('https://raw.githubusercontent.com/bia-pain-bache/BPB-Worker-Panel/refs/heads/main/package.json', {
+            cache: 'no-store'
+        });
+
+        if (!res.ok) {
+            throw new Error(`status ${res.status}`);
+        }
+
+        const pkg = await res.json();
+        const latest = pkg.version;
+        const updateAvailable = isNewerVersion(latest, panelVersion);
+        if (updateAvailable) {
+            globalThis.latestVersion = latest;
+            const upgradeBtn = document.getElementById('updatePanel');
+            upgradeBtn.disabled = false;
+        }
+    } catch (error) {
+        console.error('Get latest version error:', error);
+    }
+}
+
+function isNewerVersion(latest, current) {
+    const lv = latest.split('.').map(Number);
+    const cv = current.split('.').map(Number);
+
+    for (let i = 0; i < Math.max(lv.length, cv.length); i++) {
+        const l = lv[i] ?? 0;
+        const c = cv[i] ?? 0;
+        if (l > c) return true;
+        if (l < c) return false;
+    }
+
+    return false;
+}
+
+function renderPanel(proxySettings, tgSettings, subscriptions, clients) {
+    const {
+        securePath,
+        ports,
+        xrayUdpNoises,
+        remoteSettings
+    } = proxySettings;
+
+    const path = encodeURIComponent(securePath);
+    if (path !== window.location.pathname.split('/')[1]) {
+        setTimeout(() => {
+            window.location.href = `../${path}/panel`;
+        }, 1000);
+    }
+
+    const dohUrl = new URL(`./dns-query`, window.location.href);
+    document.getElementById('doh').textContent = dohUrl.href;
+    document.getElementById('fetchSettingsBtn').disabled = !remoteSettings;
+
     selectElements.forEach(elm => elm.value = proxySettings[elm.id]);
     checkboxElements.forEach(elm => elm.checked = proxySettings[elm.id]);
-    inputElements.forEach(elm => elm.value = proxySettings[elm.id] || "");
+    inputElements.forEach(elm => elm.value = proxySettings[elm.id] || '');
     textareaElements.forEach(elm => {
         const key = elm.id;
         const element = document.getElementById(key);
         const value = proxySettings[key]?.join('\r\n');
         const rowsCount = proxySettings[key].length;
-        if (element) {
-            element.style.height = 'auto';
-            if (rowsCount) element.rows = rowsCount;
-            element.value = value;
-        }
-    });
-}
-
-function initiateForm() {
-    const configForm = document.getElementById('configForm');
-    globalThis.initialFormData = new FormData(configForm);
-    enableApplyButton();
-
-    configForm.addEventListener('input', enableApplyButton);
-    configForm.addEventListener('change', enableApplyButton);
-    const textareas = document.querySelectorAll("textarea");
-
-    textareas.forEach(textarea => {
-        textarea.addEventListener('input', function () {
-            this.style.height = 'auto';
-            this.style.height = `${this.scrollHeight}px`;
+        element.style.height = 'auto';
+        if (rowsCount) element.rows = rowsCount;
+        element.value = value;
+        elm.addEventListener('input', () => {
+            elm.style.height = 'auto';
+            elm.style.height = `${elm.scrollHeight}px`;
         });
     });
 
+    renderPorts(ports.map(Number));
+    renderNoises(xrayUdpNoises);
+    renderSubscriptions(subscriptions);
+    renderClients(clients);
+
+    globalThis.initialFormData = new FormData(proxyForm);
+    handleProxyFormChanges();
+    proxyForm.addEventListener('input', handleProxyFormChanges);
+    proxyForm.addEventListener('change', handleProxyFormChanges);
     handleFragmentMode();
+
+    if (tgSettings) {
+        const tgForm = document.getElementById('telegramForm');
+        handleTgFormChanges(tgSettings);
+        tgForm.addEventListener('input', () => handleTgFormChanges());
+
+        for (const key in tgSettings) {
+            tgForm.elements[key].value = tgSettings[key];
+        }
+    }
 }
 
 function hasFormDataChanged() {
@@ -194,155 +186,35 @@ function hasFormDataChanged() {
     return JSON.stringify(initialFormDataObj) !== JSON.stringify(currentFormDataObj);
 }
 
-function enableApplyButton() {
+function handleProxyFormChanges(force = false) {
     const applyButton = document.getElementById('applyButton');
     const isChanged = hasFormDataChanged();
-    applyButton.disabled = !isChanged;
-    applyButton.classList.toggle('disabled', !isChanged);
+    applyButton.disabled = force ? false : !isChanged;
 }
 
-function togglePassword(btn) {
-    const input = btn.previousElementSibling;
-    const isPassword = input.type === 'password';
-    input.type = isPassword ? 'text' : 'password';
-    btn.textContent = isPassword ? '🙈' : '👁️';
-}
+function handleTgFormChanges(settings) {
+    const userId = document.getElementById('telegramUserId');
+    const token = document.getElementById('telegramBotToken');
+    const setupBtn = document.getElementById('setup-telegram');
+    const removeBtn = document.getElementById('remove-telegram');
 
-async function saveCfCredentials() {
-    const form = validateSettings();
-    if (!form) return;
-    document.body.style.cursor = 'wait';
-    try {
-        const res = await fetch('/panel/update-settings', {
-            method: 'PUT',
-            body: JSON.stringify(form),
-            credentials: 'include',
-            headers: { 'Content-Type': 'application/json' }
-        });
-        const data = await res.json();
-        if (!data.success) {
-            showToast(`Failed to save: ${data.message}`, 'error');
-            document.body.style.cursor = 'default';
-            return;
-        }
-        showToast('CF credentials saved!', 'success');
-        fetchCfUsage();
-    } catch (err) {
-        showToast('Failed to save credentials.', 'error');
-    } finally {
-        document.body.style.cursor = 'default';
-    }
-}
+    if (settings) {
+        const { telegramUserId, telegramBotToken } = settings;
+        removeBtn.disabled = !telegramUserId && !telegramBotToken;
+        setupBtn.disabled = true;
 
-async function fetchCfUsage() {
-    const card = document.getElementById('cfUsageCard');
-    if (!card) return;
-    card.style.display = 'block';
-    card.innerHTML = '<div class="usage-loading">🔄 Fetching usage stats...</div>';
-    try {
-        const res = await fetch('/panel/cf-usage', { credentials: 'include' });
-        const { success, body, message } = await res.json();
-        if (!success) {
-            card.innerHTML = `<div class="usage-loading">⚠️ ${message || 'Failed to fetch usage.'}</div>`;
-            return;
-        }
-        renderUsageCard(body);
-    } catch (err) {
-        card.innerHTML = '<div class="usage-loading">❌ Error fetching usage stats.</div>';
-    }
-}
+        userId.value = telegramUserId;
+        token.value = telegramBotToken;
 
-function renderUsageCard(data) {
-    const card = document.getElementById('cfUsageCard');
-    const reqPct = data.requests.percent;
-    const obsPct = data.observability.percent;
-
-    const reqBarClass = reqPct >= 80 ? 'red' : reqPct >= 60 ? 'amber' : 'green';
-    const obsBarClass = obsPct >= 80 ? 'red' : obsPct >= 60 ? 'amber' : 'green';
-
-    const fmt = n => n.toLocaleString();
-    let warningsHtml = '';
-    if (data.warnings && data.warnings.length > 0) {
-        warningsHtml = data.warnings.map(w =>
-            `<div class="usage-warning">⚠️ ${w}</div>`
-        ).join('');
-    }
-    if (data.overLimit) {
-        warningsHtml += '<div class="usage-over-limit">🚫 You have exceeded your Cloudflare Workers limit!</div>';
+        return;
     }
 
-    card.innerHTML = `
-        <div class="usage-card-title">📊 Usage Stats &bull; ${data.period}</div>
-        <div class="usage-metric">
-            <div class="usage-metric-label">
-                <span>🔵 Requests today</span>
-                <span>${fmt(data.requests.used)} / ${fmt(data.requests.limit)} (${reqPct}%)</span>
-            </div>
-            <div class="usage-progress">
-                <div class="usage-progress-bar ${reqBarClass}" style="width:${Math.min(reqPct, 100)}%"></div>
-            </div>
-        </div>
-        <div class="usage-metric">
-            <div class="usage-metric-label">
-                <span>👁 Observability</span>
-                <span>${fmt(data.observability.used)} / ${fmt(data.observability.limit)} (${obsPct}%)</span>
-            </div>
-            <div class="usage-progress">
-                <div class="usage-progress-bar ${obsBarClass}" style="width:${Math.min(obsPct, 100)}%"></div>
-            </div>
-        </div>
-        ${warningsHtml}
-    `;
-}
-
-function openResetPass() {
-    const resetPassModal = document.getElementById('resetPassModal');
-    resetPassModal.style.display = "flex";
-    document.body.style.overflow = "hidden";
-}
-
-function closeResetPass() {
-    const resetPassModal = document.getElementById('resetPassModal');
-    resetPassModal.style.display = "none";
-    document.body.style.overflow = "";
-}
-
-function closeQR() {
-    const qrModal = document.getElementById('qrModal');
-    const qrcodeContainer = document.getElementById('qrcode-container');
-    qrModal.style.display = "none";
-    if (qrcodeContainer && qrcodeContainer.lastElementChild) {
-        qrcodeContainer.lastElementChild.remove();
-    }
-}
-
-function updateThemeUI() {
-    const theme = document.documentElement.getAttribute('data-theme') || 'light';
-    const themeToggleBtn = document.getElementById('themeToggle');
-    if (themeToggleBtn) {
-        themeToggleBtn.textContent = theme === 'dark' ? '🌙' : '☀️';
-    }
-
-    // Set select element colors in JS after theme switch/load
-    document.querySelectorAll('select').forEach(el => {
-        el.style.backgroundColor = 
-            theme === 'dark' ? '#0f0f1a' : '#ffffff';
-        el.style.color = 
-            theme === 'dark' ? '#f1f5f9' : '#1e1b4b';
-    });
-}
-
-function toggleTheme() {
-    const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
-    const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-    document.documentElement.setAttribute('data-theme', newTheme);
-    localStorage.setItem('bpb-theme', newTheme);
-    updateThemeUI();
+    setupBtn.disabled = !userId.value.trim() || !token.value.trim();
 }
 
 async function getIpDetails(ip) {
     try {
-        const response = await fetch('/panel/my-ip', { method: 'POST', body: ip });
+        const response = await fetch('./panel/my-ip', { method: 'POST', body: ip });
         const { success, status, message, body } = await response.json();
 
         if (!success) {
@@ -351,302 +223,256 @@ async function getIpDetails(ip) {
 
         return body;
     } catch (error) {
-        console.error("Fetching IP error:", error.message || error)
+        console.error('Fetching IP error:', error)
     }
 }
 
 async function fetchIPInfo() {
-    const refreshIcon = document.getElementById("refresh-geo-location").querySelector('i');
-    refreshIcon.classList.add('fa-spin');
+    const icons = startWaiting(null, 'refresh-geo-location', '');
+
     const updateUI = (ip = '-', country = '-', countryCode = '-', city = '-', isp = '-', cfIP) => {
         const flag = countryCode !== '-' ? String.fromCodePoint(...[...countryCode].map(c => 0x1F1E6 + c.charCodeAt(0) - 65)) : '';
         const updateContent = (id, content) => document.getElementById(id).textContent = content;
         updateContent(cfIP ? 'cf-ip' : 'ip', ip);
-        updateContent(cfIP ? 'cf-country' : 'country', `${country} ${flag}`);
+        updateContent(cfIP ? 'cf-country' : 'country', `${flag} ${country}`);
         updateContent(cfIP ? 'cf-city' : 'city', city);
         updateContent(cfIP ? 'cf-isp' : 'isp', isp);
     };
 
-    try {
-        const response = await fetch('https://ipv4.geojs.io/v1/ip.json' + '?nocache=' + Date.now(), { cache: "no-store" });
-        
-        if (!response.ok) {
-            const errorMessage = await response.text();
-            throw new Error(`Fetch Other targets IP failed with status ${response.status} at ${response.url} - ${errorMessage}`);
+    const nocache = Date.now();
+    const othersPromise = fetch(`https://ipv4.geojs.io/v1/ip.json?nocache=${nocache}`, { cache: 'no-store' })
+        .then(async res => {
+            if (!res.ok) throw new Error(`Fetch Other targets IP failed.`);
+            const { ip } = await res.json();
+            const { country, countryCode, city, isp } = await getIpDetails(ip);
+            updateUI(ip, country, countryCode, city, isp);
+        });
+
+    const cfPromise = fetch(`https://ipv4.icanhazip.com/?nocache=${nocache}`, { cache: 'no-store' })
+        .then(async res => {
+            if (!res.ok) throw new Error(`Fetch Cloudflare targets IP failed.`);
+            const ip = await res.text();
+            const { country, countryCode, city, isp } = await getIpDetails(ip.trim());
+            updateUI(ip, country, countryCode, city, isp, true);
+        });
+
+    const results = await Promise.allSettled([othersPromise, cfPromise]);
+    results.forEach(result => {
+        if (result.status === 'rejected') console.error(result.reason);
+    });
+
+    stopWaiting(icons);
+}
+
+function generateSubUrl(type, core, tag) {
+    const url = new URL(`./sub/${type}`, window.location.href);
+    url.searchParams.append('app', core);
+    url.hash = `💦 BPB ${tag}`;
+
+    if (core === 'sing-box' && type !== 'raw') {
+        return `sing-box://import-remote-profile?url=${url.href}`;
+    }
+
+    return url.href;
+}
+
+async function generateQRCode(data) {
+    const url = new URL('./qrcode', window.location.href);
+    url.searchParams.set('data', data);
+    url.searchParams.set('nocache', Date.now().toString());
+
+    const res = await fetch(url, { method: 'POST' });
+    if (!res.ok) {
+        throw new Error(`status ${res.status}`);
+    }
+
+    const blob = await res.blob();
+
+    return elm('img', {
+        id: 'qr',
+        className: 'qrcode',
+        src: URL.createObjectURL(blob)
+    });
+}
+
+function showQRCode(subUrl) {
+    const url = new URL(subUrl);
+    const modal = document.getElementById('qrModal');
+    const close = modal.querySelector('.modal-close');
+    const container = document.getElementById('qrcode-container');
+
+    let qrcodeTitle = document.getElementById('qrcodeTitle');
+    qrcodeTitle.textContent = decodeURIComponent(url.hash).replace('#', '');
+
+    close.onclick = () => {
+        modal.hidden = true;
+        container.lastElementChild.remove();
+        window.onclick = null;
+    };
+
+    window.onclick = (event) => {
+        if (event.target == modal) {
+            modal.hidden = true;
+            container.lastElementChild.remove();
         }
-
-        const { ip } = await response.json();
-        const { country, countryCode, city, isp } = await getIpDetails(ip);
-        updateUI(ip, country, countryCode, city, isp);
-        refreshIcon.classList.remove('fa-spin');
-    } catch (error) {
-        console.error("Fetching IP error:", error.message || error)
     }
 
-    try {
-        const response = await fetch('https://ipv4.icanhazip.com/?nocache=' + Date.now(), { cache: "no-store" });
-
-        if (!response.ok) {
-            const errorMessage = await response.text();
-            throw new Error(`Fetch Cloudflare targets IP failed with status ${response.status} at ${response.url} - ${errorMessage}`);
-        }
-
-        const ip = await response.text();
-        const { country, countryCode, city, isp } = await getIpDetails(ip);
-        updateUI(ip, country, countryCode, city, isp, true);
-        refreshIcon.classList.remove('fa-spin');
-    } catch (error) {
-        console.error("Fetching IP error:", error.message || error)
-    }
+    generateQRCode(subUrl).then(qr => {
+        container.appendChild(qr);
+        modal.hidden = false;
+    });
 }
 
-function downloadWarpConfigs(isAmnezia) {
-    const client = isAmnezia ? "?app=amnezia" : "";
-    window.location.href = "/panel/get-warp-configs" + client;
+function copyToClipboard(url) {
+    navigator.clipboard.writeText(url)
+        .then(() => notify('info', 'Copied to clipboard', [url]))
+        .catch(error => console.error('Failed to copy:', error));
 }
 
-function generateSubUrl(path, app, tag, singboxType) {
-    const url = new URL(window.location.href);
-    url.pathname = `/sub/${path}/${globalThis.subPath}`;
-    app && url.searchParams.append('app', app);
-
-    if (tag) {
-        url.hash = `💦 BPB ${tag}`;
-    }
-
-    return singboxType
-        ? `sing-box://import-remote-profile?url=${url.href}`
-        : url.href;
-}
-
-function subURL(path, app, tag, singboxType) {
-    const url = generateSubUrl(path, app, tag, singboxType);
+function copyDoh() {
+    const url = document.getElementById('doh').textContent;
     copyToClipboard(url);
 }
 
-async function dlURL(path, app) {
-    const url = generateSubUrl(path, app);
+async function dlUrl(subUrl) {
+    const url = new URL(subUrl);
+    window.location.href = url.protocol === 'sing-box:' ? url.searchParams.get('url') : subUrl;
+}
 
-    try {
-        const response = await fetch(url);
-        const data = await response.text();
-
-        if (!response.ok) {
-            throw new Error(`status ${response.status} at ${response.url} - ${data}`);
-        }
-
-        downloadJSON(data, "config.json");
-    } catch (error) {
-        console.error("Download error:", error.message || error);
+async function exportFileSettings(event) {
+    if (hasFormDataChanged()) {
+        notify('error', 'Export settings', ['Please apply unsaved changes first.']);
+        return;
     }
+
+    const icons = startWaiting(event.target, '', 'refresh');
+    const url = new URL('./sub/share-settings', window.location.href);
+    window.location.href = url.href;
+    stopWaiting(icons);
 }
 
-function downloadJSON(data, fileName) {
-    const blob = new Blob([data], { type: 'text/plain' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = fileName;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-}
-
-function exportSettings() {
-    const form = validateSettings();
-    const data = JSON.stringify(form, null, 4);
-    const encodedData = btoa(data);
-    downloadJSON(encodedData, `BPB-settings.dat`);
-}
-
-function importSettings() {
+function importFile() {
     const input = document.getElementById('fileInput');
     input.value = '';
     input.click();
 }
 
-async function uploadSettings(event) {
+async function importFileSettings(event) {
     const file = event.target.files[0];
     if (!file) return;
 
     try {
         const text = await file.text();
         const data = atob(text);
-        const settings = JSON.parse(data);
-        updateSettings(event, settings);
-        initiatePanel(settings);
-    } catch (err) {
-        console.error('Failed to import settings:', err.message);
+        const newSettings = JSON.parse(data);
+        const currentSettings = validateSettings();
+        const settings = { ...currentSettings, ...newSettings };
+
+        renderPanel(settings);
+        handleProxyFormChanges(true);
+
+        notify('success', 'Import settings', [
+            'Settings imported successfully!',
+            'Please first REVIEW new settings and then apply, specially ROUTING settings.'
+        ]);
+    } catch (error) {
+        console.error('Import settings error:', error);
+        notify('error', 'Import settings', ['Failed to get settings from file.']);
     }
 }
 
-function openQR(path, app, tag, title, singboxType) {
-    const qrModal = document.getElementById('qrModal');
-    const qrcodeContainer = document.getElementById('qrcode-container');
-    const url = generateSubUrl(path, app, tag, singboxType);
-    let qrcodeTitle = document.getElementById("qrcodeTitle");
-    qrcodeTitle.textContent = title;
-    qrModal.style.display = "flex";
-    let qrcodeDiv = document.createElement("div");
-    qrcodeDiv.className = "qrcode";
-    qrcodeDiv.style.padding = "2px";
-    qrcodeDiv.style.backgroundColor = "#ffffff";
-    /* global QRCode */
-    new QRCode(qrcodeDiv, {
-        text: url,
-        width: 256,
-        height: 256,
-        colorDark: "#000000",
-        colorLight: "#ffffff",
-        correctLevel: QRCode.CorrectLevel.H
-    });
-
-    qrcodeContainer.appendChild(qrcodeDiv);
-}
-
-function copyToClipboard(text) {
-    navigator.clipboard.writeText(text)
-        .then(() => showToast('Copied to clipboard!', 'success'))
-        .catch(error => console.error('Failed to copy:', error));
-}
-
-async function setupTelegramWebhook() {
-    const token = document.getElementById('telegramBotToken').value.trim();
-    const adminId = document.getElementById('telegramAdminId').value.trim();
-
-    if (!token) {
-        showToast('Please enter a Bot Token first.', 'error');
-        return;
-    }
-    if (!adminId) {
-        showToast('Please enter an Admin Telegram ID first.', 'error');
+async function importRemoteSettings(event) {
+    if (hasFormDataChanged()) {
+        notify('error', 'Import settings', ['Please apply unsaved changes first.']);
         return;
     }
 
-    const form = validateSettings();
-    if (!form) return;
+    const icons = startWaiting(event.target, '', 'refresh');
+    const remote = document.getElementById('remoteSettings').value.trim();
+    const currentSettings = validateSettings();
 
-    document.body.style.cursor = 'wait';
     try {
-        const saveRes = await fetch('/panel/update-settings', {
-            method: 'PUT',
-            body: JSON.stringify(form),
-            credentials: 'include',
-            headers: { 'Content-Type': 'application/json' }
-        });
-        const saveData = await saveRes.json();
-        if (!saveData.success) {
-            showToast(`Failed to save settings: ${saveData.message}`, 'error');
-            document.body.style.cursor = 'default';
-            return;
-        }
+        const newSettings = await fetchSettings(remote);
+        const settings = { ...currentSettings, ...newSettings };
 
-        const response = await fetch('/panel/setup-telegram-webhook');
+        renderPanel(settings);
+        handleProxyFormChanges(true);
+
+        notify('success', 'Import settings', [
+            'Settings imported successfully!',
+            'Please first REVIEW new settings and then apply, specially ROUTING settings.'
+        ]);
+    } catch (error) {
+        console.error('Import settings error:', error);
+        notify('error', 'Import settings', ['Failed to get settings from remote.']);
+    } finally {
+        stopWaiting(icons);
+    }
+}
+
+function shareSettings() {
+    const url = new URL('./sub/share-settings', window.location.href);
+    copyToClipboard(url);
+}
+
+async function fetchSettings(remoteUrl) {
+    const url = new URL(remoteUrl);
+    const remote = `${url.origin + url.pathname}?nocache=${Date.now()}`;
+
+    const res = await fetch(remote, { cache: 'no-store' });
+    if (!res.ok) {
+        throw new Error(`status ${res.status}`);
+    }
+
+    const data = await res.text();
+    return JSON.parse(atob(data));
+}
+
+async function renewWarpAccounts(btn) {
+    const confirm = await notify('confirm', 'Renew Warp Accounts', ['Are you sure?'])
+    if (!confirm) return;
+    const icons = startWaiting(btn, '', '');
+
+    try {
+        const response = await fetch('./panel/update-warp', { method: 'POST', credentials: 'include' });
         const { success, status, message } = await response.json();
 
         if (!success) {
-            showToast(`${message}`, 'error');
-            document.body.style.cursor = 'default';
-            return;
+            notify('error', 'Renew Warp Accounts', ['An error occured, Please try again later.']);
+            throw new Error(`status ${status} - ${message}`);
         }
 
-        showToast('Telegram webhook set up successfully! Send /start to your bot to test.', 'success');
+        notify('success', 'Renew Warp Accounts', ['Warp accounts updated successfully!']);
     } catch (error) {
-        console.error("Setup webhook error:", error.message || error);
-        showToast('Failed to setup webhook. Please try again.', 'error');
+        console.error('Updating Warp configs error:', error)
+        notify('error', 'Renew Warp Accounts', ['Failed to renew Warp accounts.']);
     } finally {
-        document.body.style.cursor = 'default';
+        stopWaiting(icons);
     }
 }
 
-async function updateWarpConfigs() {
-    showConfirm(
-        'Are you sure you want to update Warp configs?',
-        async () => {
-            const refreshBtn = document.getElementById('warp-update');
-            document.body.style.cursor = 'wait';
-            if (refreshBtn) refreshBtn.classList.add('fa-spin');
-
-            try {
-                const response = await fetch('/panel/update-warp', { method: 'POST', credentials: 'include' });
-                const { success, status, message } = await response.json();
-
-                document.body.style.cursor = 'default';
-                if (refreshBtn) refreshBtn.classList.remove('fa-spin');
-
-                if (!success) {
-                    showToast(`An error occurred: ${message}`, 'error');
-                    throw new Error(`status ${status} - ${message}`);
-                }
-
-                showToast('Warp configs updated successfully!', 'success');
-            } catch (error) {
-                console.error("Updating Warp configs error:", error.message || error)
-            }
-        },
-        { icon: '⚠️', title: 'Update Warp Configs', confirmText: 'Yes, Update' }
-    );
-}
-
-function handleProtocolChange(event) {
+async function handleRiskyRules(event) {
     if (event.target.checked) {
-        globalThis.activeProtocols++;
-        return true;
-    }
-
-    globalThis.activeProtocols--;
-
-    if (globalThis.activeProtocols === 0) {
-        event.preventDefault();
-        event.target.checked = !event.target.checked;
-        showToast("At least one Protocol should be selected!", 'warning');
-        globalThis.activeProtocols++;
-        return false;
-    }
-}
-
-function handlePortChange(event) {
-    const portField = Number(event.target.name);
-
-    if (event.target.checked) {
-        globalThis.activeTlsPorts.push(portField);
-        return true;
-    }
-
-    globalThis.activeTlsPorts = globalThis.activeTlsPorts.filter(port => port !== portField);
-
-    if (globalThis.activeTlsPorts.length === 0) {
-        event.preventDefault();
-        event.target.checked = !event.target.checked;
-        showToast("At least one TLS port should be selected!", 'warning');
-        globalThis.activeTlsPorts.push(portField);
-        return false;
-    }
-}
-
-function handleRiskyRules(event) {
-    if (event.target.checked) {
-        showConfirm(
+        const proceed = await notify('confirm', 'Geo asset files', [
             "v2ray users should set Geo Assets to Chocolate4U and download assets, otherwise configs won't connect.",
-            null,
-            {
-                icon: '⚠️',
-                title: 'Proceed?',
-                confirmText: 'Proceed',
-                cancelText: 'Cancel',
-                onCancel: () => { event.target.checked = false; }
-            }
-        );
+            'Proceed anyway?'
+        ]);
+
+        if (!proceed) {
+            event.target.checked = false;
+            return;
+        }
     }
 }
 
 function handleFragmentMode() {
-    const fragmentMode = document.getElementById("fragmentMode").value;
+    const fragmentMode = document.getElementById('fragmentMode').value;
     const formDataObj = Object.fromEntries(globalThis.initialFormData.entries());
     const inputs = [
-        "fragmentLengthMin",
-        "fragmentLengthMax",
-        "fragmentIntervalMin",
-        "fragmentIntervalMax"
+        'fragmentLengthMin',
+        'fragmentLengthMax',
+        'fragmentDelayMin',
+        'fragmentDelayMax'
     ];
 
     const configs = {
@@ -659,547 +485,174 @@ function handleFragmentMode() {
 
     inputs.forEach((id, index) => {
         const elm = document.getElementById(id);
-        if (elm) {
-            elm.value = configs[fragmentMode][index];
-            fragmentMode !== "custom"
-                ? elm.setAttribute('readonly', 'true')
-                : elm.removeAttribute('readonly');
-        }
+        elm.value = configs[fragmentMode][index];
+        fragmentMode !== 'custom'
+            ? elm.setAttribute('readonly', 'true')
+            : elm.removeAttribute('readonly');
     });
 }
 
-function resetSettings() {
-    showConfirm(
-        'This will reset all panel settings. Are you sure?',
-        () => {
-            const resetBtn = document.getElementById("refresh-btn");
-            if (resetBtn) resetBtn.classList.add('fa-spin');
-            const body = { resetSettings: true };
-            document.body.style.cursor = 'wait';
-
-            fetch('/panel/reset-settings', {
-                method: 'POST',
-                body: JSON.stringify(body),
-                credentials: 'include',
-                headers: { 'Content-Type': 'application/json' }
-            })
-                .then(response => response.json())
-                .then(({ success, status, message, body }) => {
-                    document.body.style.cursor = 'default';
-                    if (resetBtn) resetBtn.classList.remove('fa-spin');
-
-                    if (!success) {
-                        throw new Error(`status ${status} - ${message}`);
-                    }
-
-                    initiatePanel(body);
-                    showToast('Panel settings reset to default successfully! Please update your subscriptions.', 'success');
-                })
-                .catch(error => console.error("Reseting settings error:", error.message || error));
-        },
-        { icon: '⚠️', title: 'Reset Settings', confirmText: 'Yes, Reset' }
+async function resetSettings(btn) {
+    const confirm = await notify(
+        'confirm',
+        'Reset panel settings',
+        [
+            'This will reset all settings except:',
+            '+ VLESS UUID',
+            '+ Trojan password',
+            '+ Panel - Subscriptions path\n',
+            'Are you sure?'
+        ]
     );
+
+    if (!confirm) return;
+    const icons = startWaiting(btn, '', '', false);
+
+    try {
+        const res = await fetch('./panel/reset-settings', {
+            method: 'POST',
+            credentials: 'include',
+            headers: { 'Content-Type': 'application/json' }
+        });
+
+        const { success, status, message, body } = await res.json();
+        if (!success) {
+            throw new Error(`status ${status} - ${message}`);
+        }
+
+        notify(
+            'success',
+            'Reset panel settings',
+            ['Please update your subscriptions.']
+        );
+
+        renderPanel(body);
+    } catch (error) {
+        console.error('Reseting settings error:', error);
+    } finally {
+        stopWaiting(icons);
+    }
 }
 
 function updateSettings(event, data) {
-    if (event) {
-        event.preventDefault();
-        event.stopPropagation();
-    }
+    event.preventDefault();
+    event.stopPropagation();
 
     const validatedForm = validateSettings();
     if (!validatedForm) return false;
+    const form = data ?? validatedForm;
 
-    const form = data ? data : validatedForm;
-    const applyButton = document.getElementById('applyButton');
-    document.body.style.cursor = 'wait';
-    const applyButtonVal = applyButton.value;
-    applyButton.value = '⌛ Loading...';
+    const icons = startWaiting(null, 'applyButton', 'refresh');
 
-    fetch('/panel/update-settings', {
+    fetch('./panel/update-settings', {
         method: 'PUT',
         body: JSON.stringify(form),
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' }
     })
-        .then(response => response.json())
-        .then(({ success, status, message }) => {
-
+        .then(res => res.json())
+        .then(({ success, status, message, body: errors }) => {
             if (status === 401) {
-                showToast('Session expired! Please login again.', 'warning');
-                window.location.href = '/login';
+                notify(
+                    'error',
+                    'Apply settings',
+                    ['Session expired! Please login and try again.']
+                );
+                window.location.href = './login';
+            }
+
+            if (!success) {
+                errors.forEach(error => {
+                    notify('error', error.field, error.message);
+                });
+                throw new Error(`status ${status} - ${message}`);
+            }
+
+            notify(
+                'success',
+                'Apply settings',
+                ['Please update your subscriptions.']
+            );
+
+            renderPanel(form);
+        })
+        .catch(error => console.error('Update settings error:', error))
+        .finally(() => stopWaiting(icons));
+}
+
+function setupTelegramBot() {
+    event.preventDefault();
+    event.stopPropagation();
+
+    const formData = new FormData(event.target);
+    const form = Object.fromEntries(formData.entries());
+
+    const setupBtn = document.getElementById('setup-telegram');
+    const icons = startWaiting(setupBtn, '', 'refresh');
+
+    fetch('./telegram/setup', {
+        method: 'PUT',
+        body: JSON.stringify(form),
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' }
+    })
+        .then(res => res.json())
+        .then(({ success, status, message, body }) => {
+            if (status === 401) {
+                notify(
+                    'error',
+                    'Setup Telegram bot',
+                    ['Session expired! Please login and try again.']
+                );
+                window.location.href = './login';
             }
 
             if (!success) {
                 throw new Error(`status ${status} - ${message}`);
             }
 
-            initiatePanel(form);
-            showToast('Settings applied successfully! Please update your subscriptions.', 'success');
+            handleTgFormChanges(body);
+            notify(
+                'success',
+                'Setup Telegram bot',
+                ['Telegram bot is ready to use.']
+            );
         })
-        .catch(error => console.error("Update settings error:", error.message || error))
+        .catch(error => console.error('Setup Telegram bot error:', error))
         .finally(() => {
-            document.body.style.cursor = 'default';
-            applyButton.value = applyButtonVal;
+            stopWaiting(icons);
+            setupBtn.disabled = true;
         });
 }
 
-function parseElmValues(id) {
-    const elm = document.getElementById(id);
-    return elm ? (elm.value?.split('\n').map(value => value.trim()).filter(Boolean) || []) : [];
-}
-
-// Validation functions
-function getElmValue(id) {
-    const elm = document.getElementById(id);
-    return elm ? elm.value?.trim() : '';
-}
-
-function isDomain(value) {
-    const domainRegex = /^(?=.{1,253}$)(?:(?:[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)\.)+[a-zA-Z]{2,63}$/;
-    return domainRegex.test(value);
-}
-
-function isIPv4(value) {
-    const ipv4Regex = /^(?:(?:25[0-5]|2[0-4]\d|[01]?\d\d?)\.){3}(?:25[0-5]|2[0-4]\d|[01]?\d\d?)$/;
-    return ipv4Regex.test(value);
-}
-
-function isIPv4CIDR(value) {
-    const ipv4CidrRegex = /^(?:(?:25[0-5]|2[0-4]\d|[01]?\d\d?)\.){3}(?:25[0-5]|2[0-4]\d|[01]?\d\d?)(?:\/(?:[0-9]|[1-2][0-9]|3[0-2]))?$/;
-    return ipv4CidrRegex.test(value);
-}
-
-function isIPv6(value) {
-    const ipv6Regex = /^\[(?:(?:[a-fA-F0-9]{1,4}:){7}[a-fA-F0-9]{1,4}|(?:[a-fA-F0-9]{1,4}:){1,7}:|(?:[a-fA-F0-9]{1,4}:){1,6}:[a-fA-F0-9]{1,4}|(?:[a-fA-F0-9]{1,4}:){1,5}(?::[a-fA-F0-9]{1,4}){1,2}|(?:[a-fA-F0-9]{1,4}:){1,4}(?::[a-fA-F0-9]{1,4}){1,3}|(?:[a-fA-F0-9]{1,4}:){1,3}(?::[a-fA-F0-9]{1,4}){1,4}|(?:[a-fA-F0-9]{1,4}:){1,2}(?::[a-fA-F0-9]{1,4}){1,5}|[a-fA-F0-9]{1,4}:(?::[a-fA-F0-9]{1,4}){1,6}|:(?::[a-fA-F0-9]{1,4}){1,7})\]$/;
-    return ipv6Regex.test(value);
-}
-
-function isIPv6CIDR(value) {
-    const ipv6CidrRegex = /^(?:(?:[a-fA-F0-9]{1,4}:){7}[a-fA-F0-9]{1,4}|(?:[a-fA-F0-9]{1,4}:){1,7}:|(?:[a-fA-F0-9]{1,4}:){1,6}:[a-fA-F0-9]{1,4}|(?:[a-fA-F0-9]{1,4}:){1,5}(?::[a-fA-F0-9]{1,4}){1,2}|(?:[a-fA-F0-9]{1,4}:){1,4}(?::[a-fA-F0-9]{1,4}){1,3}|(?:[a-fA-F0-9]{1,4}:){1,3}(?::[a-fA-F0-9]{1,4}){1,4}|(?:[a-fA-F0-9]{1,4}:){1,2}(?::[a-fA-F0-9]{1,4}){1,5}|[a-fA-F0-9]{1,4}:(?::[a-fA-F0-9]{1,4}){1,6}|:(?::[a-fA-F0-9]{1,4}){1,7}|::)(?:\/(?:12[0-8]|1[01]?[0-9]|[0-9]?[0-9]))?$/;
-    return ipv6CidrRegex.test(value);
-}
-
-function parseHostPort(input) {
-    const regex = /^(?<host>\[.*?\]|[^:]+)(?::(?<port>\d+))?$/;
-    const match = input.match(regex);
-
-    if (!match) return null;
-
-    return {
-        host: match.groups.host,
-        port: match.groups.port ? +match.groups.port : null
-    };
-}
-
-function isValidHostName(value, isHost) {
-    const hostPort = parseHostPort(value.trim());
-    if (!hostPort) return false;
-    const { host, port } = hostPort;
-    if (port && (port > 65535 || port < 1)) return false;
-    if (isHost && !port) return false;
-
-    return isIPv6(host) || isIPv4(host) || isDomain(host);
-}
-
-function validateRemoteDNS() {
-    let url;
-    const dns = getElmValue("remoteDNS");
-
-    try {
-        url = new URL(dns);
-    } catch (error) {
-        showToast("Invalid DNS, Please enter a URL.", 'error');
-        return false;
-    }
-
-    const cloudflareDNS = [
-        '1.1.1.1',
-        '1.0.0.1',
-        '1.1.1.2',
-        '1.0.0.2',
-        '1.1.1.3',
-        '1.0.0.3',
-        '2606:4700:4700::1111',
-        '2606:4700:4700::1001',
-        '2606:4700:4700::1112',
-        '2606:4700:4700::1002',
-        '2606:4700:4700::1113',
-        '2606:4700:4700::1003',
-        'cloudflare-dns.com',
-        'security.cloudflare-dns.com',
-        'family.cloudflare-dns.com',
-        'one.one.one.one',
-        '1dot1dot1dot1'
-    ];
-
-    if (!["tcp:", "https:", "tls:"].includes(url.protocol)) {
-        showToast("Please enter TCP, DoH or DoT servers.", 'error');
-        return false;
-    }
-
-    if (cloudflareDNS.includes(url.hostname)) {
-        showToast("Cloudflare DNS is not allowed for workers. Please use other public DNS servers like Google, Adguard...", 'error');
-
-        return false;
-    }
-
-    return true;
-}
-
-function validateSanctionDns() {
-    const dns = getElmValue("antiSanctionDNS");
-    let host;
-
-    try {
-        const url = new URL(dns);
-        host = url.hostname;
-    } catch {
-        host = dns;
-    }
-
-    const isValid = isValidHostName(host, false);
-
-    if (!isValid) {
-        showToast(`Invalid IPs or Domains. ${host}`, 'error');
-
-        return false;
-    }
-
-    return true;
-}
-
-function validateWarpDNS() {
-    const dns = getElmValue("warpRemoteDNS");
-    const isValid = isIPv4(dns);
-
-    if (!isValid) {
-        showToast(`Invalid Warp DNS. Please fill in an IPv4 address (UDP DNS). ${dns}`, 'error');
-
-        return false;
-    }
-
-    return true;
-}
-
-function validateLocalDNS() {
-    const dns = getElmValue("localDNS");
-    const isValid = isIPv4(dns) || dns === 'localhost';
-
-    if (!isValid) {
-        showToast(`Invalid local DNS. Please fill in an IPv4 address or "localhost". ${dns}`, 'error');
-
-        return false;
-    }
-
-    return true;
-}
-
-function validateCustomRules() {
-    const invalidDomainIpValues = [
-        'customBypassRules',
-        'customBlockRules'
-    ].flatMap(parseElmValues)
-        .filter(value => !isIPv4CIDR(value) && !isIPv6CIDR(value) && !isDomain(value));
-
-    const invalidDomainValues = parseElmValues('customBypassSanctionRules').filter(value => !isDomain(value));
-
-    if (invalidDomainIpValues.length) {
-        showToast('Invalid IPs, Domains or IP ranges. Please enter each value in a new line. ' + invalidDomainIpValues.map(val => `${val}`).join(', '), 'error');
-
-        return false;
-    }
-
-    if (invalidDomainValues.length) {
-        showToast('Invalid Domains. Please enter each value in a new line. ' + invalidDomainValues.map(val => `${val}`).join(', '), 'error');
-
-        return false;
-    }
-
-    return true;
-}
-
-function validateMultipleHostNames() {
-    const invalidValues = [
-        'cleanIPs',
-        'customCdnAddrs',
-        'customCdnSni',
-        'customCdnHost'
-    ].flatMap(parseElmValues)
-        .filter(value => !isValidHostName(value));
-
-    if (invalidValues.length) {
-        showToast('Invalid IPs or Domains. Please enter each value in a new line. ' + invalidValues.map(ip => `${ip}`).join(', '), 'error');
-
-        return false;
-    }
-
-    return true;
-}
-
-function validateProxyIPs() {
-    const invalidValues = parseElmValues('proxyIPs')
-        .filter(value => !isValidHostName(value));
-
-    if (invalidValues.length) {
-        showToast('Invalid proxy IPs. Please enter each value in a new line. ' + invalidValues.map(ip => `${ip}`).join(', '), 'error');
-
-        return false;
-    }
-
-    return true;
-}
-
-function validateNAT64Prefixes() {
-    const invalidValues = parseElmValues('prefixes')
-        .filter(value => !isIPv6(value));
-
-    if (invalidValues.length) {
-        showToast('Invalid NAT64 prefix. Please enter each prefix in a new line using []. ' + invalidValues.map(ip => `${ip}`).join(', '), 'error');
-
-        return false;
-    }
-
-    return true;
-}
-
-function validateWarpEndpoints() {
-    const invalidEndpoints = parseElmValues('warpEndpoints')
-        .filter(value => !isValidHostName(value, true));
-
-    if (invalidEndpoints.length) {
-        showToast('Invalid endpoint. ' + invalidEndpoints.map(endpoint => `${endpoint}`).join(', '), 'error');
-
-        return false;
-    }
-
-    return true;
-}
-
-function validateMinMax() {
-    const getValue = (id) => parseInt(getElmValue(id), 10);
-
-    const fields = [
-        ['fragmentLengthMin', 'fragmentLengthMax', 'Fragment Length'],
-        ['fragmentIntervalMin', 'fragmentIntervalMax', 'Fragment Interval'],
-        ['fragmentMaxSplitMin', 'fragmentMaxSplitMax', 'Fragment Max Split'],
-        ['noiseCountMin', 'noiseCountMax', 'Noise Count'],
-        ['noiseSizeMin', 'noiseSizeMax', 'Noise Size'],
-        ['noiseDelayMin', 'noiseDelayMax', 'Noise Delay'],
-        ['amneziaNoiseSizeMin', 'amneziaNoiseSizeMax', 'Amnezia Noise Size']
-    ];
-
-    for (const [minId, maxId, label] of fields) {
-        const min = getValue(minId);
-        const max = getValue(maxId);
-
-        if (min > max) {
-            showToast(`${label}: Minimum cannot be bigger than Maximum!`, 'error');
-            return false;
-        }
-    }
-
-    return true;
-}
-
-function validateChainProxy() {
-    let chainProxy = getElmValue('outProxy');
-    if (!chainProxy) return true;
-    const isVMess = /vmess:\/\/.+$/.test(chainProxy);
-    const isOthers = /(http|socks|socks5|vless|trojan|ss):\/\/[^\s@]+@[^\s:]+:[^\s]+/.test(chainProxy);
-
-    if (!isVMess && !isOthers) {
-        showToast('Invalid Config! Standard formats are: (socks or socks5 or http)://user:pass@server:port, (socks or socks5 or http)://base64@server:port, vless://uuid@server:port..., vmess://base64, trojan://password@server:port..., ss://base64@server:port...', 'error');
-
-        return false;
-    }
-
-    const config = new URL(chainProxy);
-    let { protocol, username } = config;
-    let security = config.searchParams.get('security');
-    let type = config.searchParams.get('type');
-
-    if (isVMess) {
-        const vmConfig = JSON.parse(atob(config.host));
-        username = vmConfig.id;
-        security = vmConfig.tls;
-        type = vmConfig.net;
-    }
-
-    if (['vless:', 'trojan:', 'vmess:'].includes(protocol)) {
-        if (!username) {
-            showToast('Invalid Config! Config URL should contain UUID or Password.', 'error');
-
-            return false;
-        }
-
-        if (security && !['tls', 'none', 'reality'].includes(security)) {
-            showToast('Invalid Config! VLESS, VMess or Trojan security can be TLS, Reality or None.', 'error');
-
-            return false;
-        }
-
-        if (!['tcp', 'raw', 'ws', 'grpc', 'httpupgrade'].includes(type)) {
-            showToast('Invalid Config! VLESS, VMess or Trojan transmission can be tcp, ws, grpc or httpupgrade.', 'error');
-
-            return false;
-        }
-    }
-
-    return true;
-}
-
-function validateCustomCdn() {
-    const customCdnHost = getElmValue('customCdnHost');
-    const customCdnSni = getElmValue('customCdnSni');
-    const customCdnAddrs = parseElmValues('customCdnAddrs');
-    const isCustomCdn = customCdnAddrs.length || customCdnHost !== '' || customCdnSni !== '';
-
-    if (isCustomCdn && !(customCdnAddrs.length && customCdnHost && customCdnSni)) {
-        showToast('All "Custom" fields should be filled or deleted together!', 'error');
-        return false;
-    }
-
-    return true;
-}
-
-function handleKnockerMode() {
-    const mode = document.getElementById('knockerNoiseMode').value;
-    const hexGroup = document.getElementById('knockerHexGroup');
-    if (hexGroup) {
-        hexGroup.style.display = mode === 'custom' ? 'flex' : 'none';
-    }
-}
-
-function validateKnockerNoise() {
-    const mode = document.getElementById('knockerNoiseMode').value;
-    let knockerNoise = mode;
-
-    if (mode === 'custom') {
-        const hexVal = document.getElementById('knockerNoiseHex')?.value?.trim();
-        if (!hexVal) {
-            showToast('Please enter a hex value for custom noise mode.', 'error');
-            return false;
-        }
-        const hexRegex = /^[0-9A-Fa-f]+$/;
-        if (!hexRegex.test(hexVal)) {
-            showToast('Invalid hex value. Please enter a valid hex string (0-9, a-f).', 'error');
-            return false;
-        }
-        knockerNoise = hexVal;
-    }
-
-    const regex = /^(none|quic|random|[0-9A-Fa-f]+)$/;
-    if (!regex.test(knockerNoise)) {
-        showToast('Invalid noise mode. Please use "none", "quic", "random" or a valid hex value.', 'error');
-        return false;
-    }
-
-    return true;
-}
-
-function validateXrayNoises(fields) {
-    const [modes, packets, delaysMin, delaysMax] = fields;
-    const base64Regex = /^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/;
-    let submisionError = false;
-
-    modes.forEach((mode, index) => {
-        if (Number(delaysMin[index]) > Number(delaysMax[index])) {
-            showToast('The minimum noise delay should be smaller or equal to maximum!', 'error');
-            submisionError = true;
-            return;
-        }
-
-        switch (mode) {
-            case 'base64': {
-                if (!base64Regex.test(packets[index])) {
-                    showToast('The Base64 noise packet is not a valid base64 value!', 'error');
-                    submisionError = true;
-                }
-
-                break;
+function removeTelegramBot(btn) {
+    const icons = startWaiting(btn, '', 'refresh');
+
+    fetch('./telegram/remove', { method: 'POST', credentials: 'include' })
+        .then(res => res.json())
+        .then(({ success, status, message, body }) => {
+            if (status === 401) {
+                notify(
+                    'error',
+                    'Remove Telegram bot',
+                    ['Session expired! Please login and try again.']
+                );
+                window.location.href = './login';
             }
-            case 'rand': {
-                if (!(/^\d+-\d+$/.test(packets[index]))) {
-                    showToast('The Random noise packet should be a range like 0-10 or 10-30!', 'error');
-                    submisionError = true;
-                }
 
-                const [min, max] = packets[index].split("-").map(Number);
-
-                if (min > max) {
-                    showToast('The minimum Random noise packet should be smaller or equal to maximum!', 'error');
-                    submisionError = true;
-                }
-
-                break;
+            if (!success) {
+                throw new Error(`status ${status} - ${message}`);
             }
-            case 'hex': {
-                if (!(/^(?=(?:[0-9A-Fa-f]{2})*$)[0-9A-Fa-f]+$/.test(packets[index]))) {
-                    showToast('The Hex noise packet is not a valid hex value! It should have even length and consisted of 0-9, a-f and A-F.', 'error');
-                    submisionError = true;
-                }
 
-                break;
-            }
-            case 'array': {
-                const valid = packets[index]
-                    .split(',')
-                    .every(n => /^\d+$/.test(n) && +n >= 0 && +n <= 255);
-
-                if (!valid) {
-                    showToast('The values should be comma separated numbers between 0-255', 'error');
-                    submisionError = true;
-                }
-
-                break;
-            }
-        }
-    });
-
-    return !submisionError;
-}
-
-function validateEchConfig() {
-    const echServerName = getElmValue("echServerName");
-
-    if (echServerName && !isDomain(echServerName)) {
-        showToast('The ECH Server Name should be a domain!', 'error');
-        return false;
-    }
-
-    return true;
-}
-
-function validateUpstreamProxy() {
-    const upstreamProxy = getElmValue('upstreamProxy');
-
-    if (upstreamProxy && !isValidHostName(upstreamProxy, true)) {
-        showToast('Invalid Upstream proxy! It can be either IP:Port or Domain:Port', 'error');
-        return false;
-    }
-
-    return true;
-}
-
-function validateTelegramToken() {
-    const token = document.getElementById('telegramBotToken').value.trim();
-    if (!token) return true;
-    if (!/^\d+:[A-Za-z0-9_-]+$/.test(token)) {
-        showToast('Invalid Bot Token format! It should look like: 1234567890:ABCdef12345', 'error');
-        return false;
-    }
-    return true;
-}
-
-function validateTelegramAdminId() {
-    const id = document.getElementById('telegramAdminId').value.trim();
-    if (!id) return true;
-    if (!/^\d+$/.test(id)) {
-        showToast('Admin Telegram ID must be numeric! Get your ID from @userinfobot', 'error');
-        return false;
-    }
-    return true;
+            handleTgFormChanges(body);
+            notify(
+                'success',
+                'Remove Telegram bot',
+                ['Telegram bot removed successfully!']
+            );
+        })
+        .catch(error => console.error('Remove Telegram bot error:', error))
+        .finally(() => stopWaiting(icons));
 }
 
 function validateSettings() {
@@ -1213,31 +666,6 @@ function validateSettings() {
         'udpXrayNoiseDelayMax',
         'udpXrayNoiseCount'
     ].map(field => formData.getAll(field));
-
-    const validations = [
-        validateRemoteDNS(),
-        validateSanctionDns(),
-        validateLocalDNS(),
-        validateWarpDNS(),
-        validateMultipleHostNames(),
-        validateProxyIPs(),
-        validateNAT64Prefixes(),
-        validateWarpEndpoints(),
-        validateMinMax(),
-        validateUpstreamProxy(),
-        validateChainProxy(),
-        validateCustomCdn(),
-        validateKnockerNoise(),
-        validateXrayNoises(fields),
-        validateCustomRules(),
-        validateEchConfig(),
-        validateTelegramToken(),
-        validateTelegramAdminId()
-    ];
-
-    if (!validations.every(Boolean)) {
-        return false;
-    }
 
     const form = Object.fromEntries(formData.entries());
     const [modes, packets, delaysMin, delaysMax, counts] = fields;
@@ -1285,293 +713,547 @@ function validateSettings() {
 }
 
 function logout(event) {
-    if (event) event.preventDefault();
-    fetch('/logout', { method: 'GET', credentials: 'same-origin' })
+    event.preventDefault();
+    fetch('./panel/logout', { method: 'GET', credentials: 'same-origin' })
         .then(response => response.json())
         .then(({ success, status, message }) => {
             if (!success) {
                 throw new Error(`status ${status} - ${message}`);
             }
 
-            window.location.href = '/login';
+            window.location.href = './login';
         })
-        .catch(error => console.error("Logout error:", error.message || error));
+        .catch(error => console.error('Logout error:', error));
+}
+
+function openResetPass(event) {
+    const modal = document.getElementById('resetPassModal');
+    const close = modal.querySelector('.modal-close');
+    const showHides = modal.querySelectorAll('.show-hide');
+    const title = modal.querySelector('.modal-title');
+    const form = modal.querySelector('.config-form');
+    const username = document.getElementById('usernameContainer');
+    if (!event) {
+        title.textContent = 'Set Password';
+        username.style.display = 'flex';
+        username.setAttribute('required', 'true');
+    }
+
+    close.onclick = () => modal.hidden = true;
+    form.onsubmit = resetPassword;
+    showHides.forEach(elm => {
+        elm.onclick = () => {
+            const input = elm.previousElementSibling;
+            const isPassword = input.type === 'password';
+            input.type = isPassword ? 'text' : 'password';
+            elm.textContent = isPassword ? 'visibility' : 'visibility_off';
+        }
+    });
+
+    modal.hidden = false;
 }
 
 function resetPassword(event) {
-    if (event) event.preventDefault();
-    const resetPassModal = document.getElementById('resetPassModal');
-    const newPasswordInput = document.getElementById('newPassword');
-    const confirmPasswordInput = document.getElementById('confirmPassword');
+    event.preventDefault();
+    const username = document.getElementById('username').value.trim().toLowerCase();
     const passwordError = document.getElementById('passwordError');
-    const newPassword = newPasswordInput.value;
-    const confirmPassword = confirmPasswordInput.value;
+    const password = document.getElementById('newPassword').value.trim();
+    const confirmPassword = document.getElementById('confirmPassword').value.trim();
 
-    if (newPassword !== confirmPassword) {
-        passwordError.textContent = "Passwords do not match";
+    if (password !== confirmPassword) {
+        passwordError.textContent = 'Passwords do not match';
         return false;
     }
 
-    const hasCapitalLetter = /[A-Z]/.test(newPassword);
-    const hasNumber = /[0-9]/.test(newPassword);
-    const isLongEnough = newPassword.length >= 8;
-
-    if (!(hasCapitalLetter && hasNumber && isLongEnough)) {
-        passwordError.textContent = '⚠️ Password must contain at least one capital letter, one number, and be at least 8 characters long.';
+    const valid = /^(?=.*[A-Z])(?=.*\d).{8,}$/.test(password);
+    if (!valid) {
+        passwordError.textContent = 'Must contain at least one capital letter, one number, and be at least 8 characters long.';
         return false;
     }
 
-    fetch('/panel/reset-password', {
+    fetch('./panel/reset-password', {
         method: 'POST',
-        headers: {
-            'Content-Type': 'text/plain'
-        },
-        body: newPassword,
-        credentials: 'same-origin'
+        headers: { 'Content-Type': 'text/plain' },
+        credentials: 'same-origin',
+        body: JSON.stringify({
+            username,
+            password
+        })
     })
         .then(response => response.json())
         .then(({ success, status, message }) => {
             if (!success) {
-                passwordError.textContent = `⚠️ ${message}`;
+                passwordError.textContent = message;
                 throw new Error(`status ${status} - ${message}`);
             }
 
-            showToast("Password changed successfully! 👍", 'success');
-            window.location.href = '/login';
-
+            notify('success', 'Reset password', ['Password changed successfully!']);
+            window.location.href = './login';
         })
-        .catch(error => console.error("Reset password error:", error.message || error))
-        .finally(() => {
-            resetPassModal.style.display = "none";
-            document.body.style.overflow = "";
-        });
+        .catch(error => console.error('Reset password error:', error));
 }
 
-function renderPortsBlock(ports) {
-    let noneTlsPortsBlock = '', tlsPortsBlock = '';
+function genNoisePacket(mode, packet) {
+    switch (mode.value) {
+        case 'base64':
+            packet.value = randBase64(32, 64);
+            break;
+        case 'rand':
+            packet.value = '50-100';
+            break;
+        case 'hex':
+            packet.value = randHex(32, 64);
+            break;
+        case 'array':
+            packet.value = randArray(32, 64);
+            break;
+        case 'str': {
+            const charset = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+            packet.value = randString(charset, 32, 64);
+        }
+    }
+
+    handleProxyFormChanges();
+}
+
+function randUUID() {
+    const uuid = document.getElementById('vlUUID');
+    uuid.value = crypto.randomUUID();
+    handleProxyFormChanges();
+}
+
+function randString(charset, minLen, maxLen) {
+    return [...randBytes(minLen, maxLen)]
+        .map(byte => charset[byte % charset.length])
+        .join('');
+}
+
+function randArray(minLen, maxLen) {
+    const length = Math.floor(Math.random() * (maxLen - minLen + 1)) + minLen;
+    const array = Array.from({ length }, () => Math.floor(Math.random() * 256));
+    const field = array.map(String).join(',');
+
+    return field;
+}
+
+function randBytes(minBytes, maxBytes) {
+    const bytes = Math.floor(Math.random() * (maxBytes - minBytes + 1)) + minBytes;
+    const array = new Uint8Array(bytes);
+    crypto.getRandomValues(array);
+
+    return array;
+}
+
+function randHex(minBytes, maxBytes) {
+    return [...randBytes(minBytes, maxBytes)]
+        .map(b => b.toString(16).padStart(2, '0'))
+        .join('');
+}
+
+function randBase64(minBytes, maxBytes) {
+    return btoa(String.fromCharCode(...randBytes(minBytes, maxBytes)));
+}
+
+function randPassword() {
+    const charset = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@$&*_-+;:,.';
+    const trPass = document.getElementById('trPass');
+    trPass.value = randString(charset, 16, 32);
+    handleProxyFormChanges();
+}
+
+function randPath() {
+    const charset = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
+    const securePath = document.getElementById('securePath');
+    securePath.value = randString(charset, 16, 32);
+    handleProxyFormChanges();
+}
+
+async function updatePanel(btn) {
+    const confirm = await notify('confirm', 'Update BPB Panel', [
+        `BPB Panel verseion ${globalThis.latestVersion} is now available!`,
+        `Please read <a href='https://github.com/bia-pain-bache/BPB-Worker-Panel/releases/latest' target='_blank' rel='noopener noreferrer'>Release notes</a> carefully before updating.`,
+        'Are you sure?'
+    ]);
+
+    if (!confirm) return;
+    const icons = startWaiting(btn, '', 'refresh');
+
+    fetch('./panel/update-panel', { method: 'POST' })
+        .then(res => res.json())
+        .then(({ success, status, message }) => {
+            if (!success) throw new Error(`status ${status} - ${message}`);
+            notify('success', 'Update panel', ['Your panel upgraded successfully!']);
+            setTimeout(() => {
+                location.reload();
+            }, 3000);
+        })
+        .catch(error => {
+            notify('error', 'Update panel', ['Failed to update your BPB Panel, please try again.']);
+            console.error('Update panel error:', error)
+        })
+        .finally(() => stopWaiting(icons));
+}
+
+async function deletePanel(btn) {
+    const confirm = await notify('confirm', 'Delete BPB Panel', [
+        'This will permanently delete your panel from your Cloudflare account',
+        'Are you sure?'
+    ]);
+
+    if (!confirm) return;
+    const icons = startWaiting(btn, '', 'refresh');
+
+    fetch('./panel/delete-panel', { method: 'POST' })
+        .then(res => res.json())
+        .then(({ success, status, message }) => {
+            if (!success) throw new Error(`status ${status} - ${message}`);
+            notify('success', 'Delete panel', ['Your panel deleted successfully!']);
+        })
+        .catch(error => {
+            notify('error', 'Delete panel', ['Failed to delete your BPB Panel, please try again.']);
+            console.error('Delete panel error:', error)
+        })
+        .finally(() => stopWaiting(icons));
+}
+
+function notify(type, title, text) {
+    return new Promise(resolve => {
+        const fragment = document.getElementById('message-template').content.cloneNode(true);
+        const modal = fragment.querySelector('.modal');
+        modal.hidden = false;
+
+        modal.querySelector('.message-title').textContent = title;
+        modal.querySelector('.message-text').innerHTML = text.join('\n');
+
+        const icon = modal.querySelector('.message-icon');
+        const isOk = type === 'success' || type === 'info';
+        const isConfirm = type === 'confirm';
+
+        icon.textContent = isOk ? 'check_circle' : isConfirm ? 'help' : 'error';
+        icon.style.color = isOk ? 'var(--color-icon-green)' : 'var(--color-icon-red)';
+
+        const okBtn = modal.querySelector('.message-ok-btn');
+        const cancelBtn = modal.querySelector('.message-cancel-btn');
+        const closeBtn = modal.querySelector('.modal-close');
+
+        const handle = (value) => {
+            modal.remove();
+            resolve(value);
+        };
+
+        if (type === 'confirm') {
+            cancelBtn.onclick = () => handle(false);
+        } else {
+            cancelBtn.style.display = 'none';
+        }
+
+        if (type === 'info') {
+            okBtn.style.display = 'none';
+        } else {
+            okBtn.onclick = () => handle(true);
+        }
+
+        closeBtn.onclick = () => handle(false)
+        document.body.appendChild(fragment);
+
+        if (type === 'info') {
+            setTimeout(() => {
+                modal.remove();
+                resolve(null);
+            }, 1000);
+
+            return;
+        }
+    });
+}
+
+function startWaiting(button, id, customIcon, cw = true) {
+    document.body.classList.add('is-loading');
+    const btn = button ?? document.getElementById(id);
+    const icon = btn.querySelector('span');
+    const initIcon = icon.textContent;
+    if (customIcon) icon.textContent = customIcon;
+    icon.classList.add(`${cw ? 'cw' : 'ccw'}-spinning`);
+    return { icon, initIcon };
+}
+
+function stopWaiting(icons) {
+    document.body.classList.remove('is-loading');
+    const { icon, initIcon } = icons;
+    icon.classList.remove('cw-spinning');
+    icon.classList.remove('ccw-spinning');
+    if (initIcon !== icon.textContent) icon.textContent = initIcon;
+}
+
+function elm(tag, props = {}, children = []) {
+    const node = document.createElement(tag);
+    Object.assign(node, props);
+    node.append(...[].concat(children));
+    return node;
+}
+
+const createIcon = (text) => elm('span', {
+    className: 'material-symbols-rounded',
+    textContent: text
+});
+
+function createFormControl(labelText, action) {
+    const label = elm('span', { textContent: labelText }, action ? createIcon('refresh') : []);
+    const control = elm('div', { className: 'form-control' }, [label, elm('div')]);
+
+    return control;
+}
+
+async function deleteNoise(event) {
+    const confirm = await notify('confirm', 'Delete UDP noise', ['Are you sure?']);
+    if (!confirm) return;
+
+    event.target.closest('.inner-container').remove();
+    handleProxyFormChanges();
+}
+
+function addNoise(isManual, noiseIndex, udpNoise) {
+    const index = noiseIndex
+        ? noiseIndex
+        : document.getElementById('noises').childElementCount;
+
+    const noise = udpNoise || {
+        type: 'rand',
+        packet: '50-100',
+        delay: '1-5',
+        count: 5
+    };
+
+    const heading = elm('h4', { textContent: `Noise ${index + 1}` });
+    const headerDiv = elm('div', { className: 'header-container' }, heading);
+
+    if (index !== 0) {
+        const deleteBtn = elm('button', {
+            type: 'button',
+            className: 'delete-noise',
+            onclick: deleteNoise
+        }, createIcon('delete'));
+        headerDiv.appendChild(deleteBtn);
+    }
+
+    const modeOptions = [
+        ['base64', 'Base64'],
+        ['rand', 'Random'],
+        ['str', 'String'],
+        ['hex', 'Hex'],
+        ['array', 'Array']
+    ].map(([value, label]) => elm('option', { value, textContent: label, selected: noise.type === value }));
+
+    const modeSelect = elm('select', { name: 'udpXrayNoiseMode' }, modeOptions);
+    const modeControl = createFormControl('Mode');
+
+    const selectWrapper = modeControl.querySelector('div');
+    selectWrapper.className = 'select-wrapper';
+    selectWrapper.append(modeSelect, createIcon('keyboard_arrow_down'))
+
+    const packetInput = elm('input', { type: 'text', name: 'udpXrayNoisePacket', value: noise.packet });
+    const packetControl = createFormControl('Packet', true);
+    packetControl.querySelector('div').appendChild(packetInput);
+    const generateBtn = packetControl.querySelector('.material-symbols-rounded');
+
+    modeSelect.onchange = generateBtn.onclick = () => genNoisePacket(modeSelect, packetInput);
+
+    const countInput = elm('input', {
+        type: 'number', name: 'udpXrayNoiseCount', value: String(noise.count), min: '1', required: true
+    });
+    const countControl = createFormControl('Count');
+    countControl.querySelector('div').appendChild(countInput);
+
+    const [delayMin, delayMax] = noise.delay.split('-');
+    const delayMinInput = elm('input', { type: 'number', name: 'udpXrayNoiseDelayMin', value: delayMin, min: '1', required: true });
+    const delayMaxInput = elm('input', { type: 'number', name: 'udpXrayNoiseDelayMax', value: delayMax, min: '1', required: true });
+    const minMaxDiv = elm('div', { className: 'min-max' }, [delayMinInput, elm('span', { textContent: ' - ' }), delayMaxInput]);
+    const delayControl = createFormControl('Delay');
+    delayControl.querySelector('div').appendChild(minMaxDiv);
+
+    const section = elm('div', { className: 'section' }, [modeControl, packetControl, countControl, delayControl]);
+    const container = elm('div', { className: 'inner-container' }, [headerDiv, section]);
+
+    document.getElementById('noises').append(container);
+    if (isManual) handleProxyFormChanges(true);
+}
+
+function renderPorts(ports) {
+    let noneTlsPortsBlock = document.createDocumentFragment();
+    let tlsPortsBlock = document.createDocumentFragment();
+
     const totalPorts = [
         ...(window.origin.includes('workers.dev') ? defaultHttpPorts : []),
         ...defaultHttpsPorts
     ];
 
     totalPorts.forEach(port => {
-        const isChecked = ports.includes(port) ? 'checked' : '';
-        let clss = '', handler = '';
+        const isChecked = ports.includes(port);
+        const isHttpsPort = defaultHttpsPorts.includes(port);
 
-        if (defaultHttpsPorts.includes(port)) {
-            clss = 'class="https"';
-            handler = 'onclick="handlePortChange(event)"';
+        const checkbox = elm('input', {
+            type: 'checkbox',
+            name: String(port),
+            value: 'true',
+            checked: isChecked
+        });
+
+        const label = elm('span', { textContent: String(port) });
+        const wrapper = elm('div', { className: 'checkbox-wrapper' }, [checkbox, label]);
+
+        if (isHttpsPort) {
+            tlsPortsBlock.appendChild(wrapper);
+        } else {
+            noneTlsPortsBlock.appendChild(wrapper);
         }
-
-        const portBlock = `
-            <div class="routing">
-                <input type="checkbox" name=${port} ${clss} value="true" ${isChecked} ${handler}>
-                <label>${port}</label>
-            </div>`;
-
-        defaultHttpsPorts.includes(port)
-            ? tlsPortsBlock += portBlock
-            : noneTlsPortsBlock += portBlock;
     });
 
-    document.getElementById("tls-ports").innerHTML = tlsPortsBlock;
+    const tlsContainer = document.getElementById('tls-ports');
+    tlsContainer.innerHTML = '';
+    tlsContainer.appendChild(tlsPortsBlock);
 
-    if (noneTlsPortsBlock) {
-        document.getElementById("non-tls-ports").innerHTML = noneTlsPortsBlock;
-        document.getElementById("none-tls").style.display = 'flex';
+    const nonTlsContainer = document.getElementById('non-tls-ports');
+    if (noneTlsPortsBlock.childElementCount > 0) {
+        nonTlsContainer.innerHTML = '';
+        nonTlsContainer.appendChild(noneTlsPortsBlock);
+        document.getElementById('none-tls').style.display = 'flex';
     }
 }
 
-function addUdpNoise(isManual, noiseIndex, udpNoise) {
-    const index = noiseIndex ?? globalThis.xrayNoiseCount;
-    const noise = udpNoise || {
-        type: 'rand',
-        packet: '50-100',
-        delay: '1-5',
-        applyTo: 'ip',
-        count: 5
-    };
-
-    const container = document.createElement('div');
-    container.className = "noise-item";
-    container.id = `udp-noise-${index + 1}`;
-
-    container.innerHTML = `
-        <div class="header-container" style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; position: relative;">
-            <h4 style="font-size: 0.85rem; font-weight: 600;">Noise ${index + 1}</h4>
-            <button type="button" class="delete-noise" title="Delete noise" style="color: #ef4444; background: none; border: none; cursor: pointer; font-size: 14px; padding: 4px; display: flex; align-items: center; justify-content: center; transition: opacity 0.2s;">
-                🗑️
-            </button>      
-        </div>
-        <div class="section" style="display: flex; flex-direction: column; gap: 8px;">
-            <div class="form-control" style="display: flex; flex-direction: column; gap: 4px;">
-                <label style="font-size: 11px; font-weight: 600; color: var(--text-secondary); text-transform: uppercase;">😵‍💫 Mode</label>
-                <div>
-                    <select class="neon-input" name="udpXrayNoiseMode" style="width: 100%;">
-                        <option value="base64" ${noise.type === 'base64' ? 'selected' : ''}>Base64</option>
-                        <option value="rand" ${noise.type === 'rand' ? 'selected' : ''}>Random</option>
-                        <option value="str" ${noise.type === 'str' ? 'selected' : ''}>String</option>
-                        <option value="hex" ${noise.type === 'hex' ? 'selected' : ''}>Hex</option>
-                        <option value="array" ${noise.type === 'array' ? 'selected' : ''}>Array</option>
-                    </select>
-                </div>
-            </div>
-            <div class="form-control" style="display: flex; flex-direction: column; gap: 4px;">
-                <label style="font-size: 11px; font-weight: 600; color: var(--text-secondary); text-transform: uppercase;">📦 Packet</label>
-                <div>
-                    <input class="neon-input" type="text" name="udpXrayNoisePacket" value="${noise.packet}">
-                </div>
-            </div>
-            <div class="form-control" style="display: flex; flex-direction: column; gap: 4px;">
-                <label style="font-size: 11px; font-weight: 600; color: var(--text-secondary); text-transform: uppercase;">🎚️ Count</label>
-                <div>
-                    <input class="neon-input" type="number" name="udpXrayNoiseCount" value="${noise.count}" min="1" required>
-                </div>
-            </div>
-            <div class="form-control" style="display: flex; flex-direction: column; gap: 4px;">
-                <label style="font-size: 11px; font-weight: 600; color: var(--text-secondary); text-transform: uppercase;">🕞 Delay</label>
-                <div class="min-max" style="display: flex; gap: 8px; align-items: center;">
-                    <input class="neon-input" type="number" name="udpXrayNoiseDelayMin"
-                        value="${noise.delay.split('-')[0]}" min="1" required style="flex: 1;">
-                    <span style="color: var(--text-muted);"> - </span>
-                    <input class="neon-input" type="number" name="udpXrayNoiseDelayMax"
-                        value="${noise.delay.split('-')[1]}" min="1" required style="flex: 1;">
-                </div>
-            </div>
-        </div>`;
-
-    container.querySelector(".delete-noise").addEventListener('click', deleteUdpNoise);
-    container.querySelector("select").addEventListener('change', generateUdpNoise);
-
-    document.getElementById("noises").append(container);
-    if (isManual) enableApplyButton();
-    globalThis.xrayNoiseCount++;
-}
-
-function generateUdpNoise(event) {
-    const generateRandomBase64 = length => {
-        const array = new Uint8Array(Math.ceil(length * 3 / 4));
-        crypto.getRandomValues(array);
-        let base64 = btoa(String.fromCharCode(...array));
-
-        return base64.slice(0, length);
-    }
-
-    const generateRandomHex = length => {
-        const array = new Uint8Array(Math.ceil(length / 2));
-        crypto.getRandomValues(array);
-        let hex = [...array].map(b => b.toString(16).padStart(2, '0')).join('');
-
-        return hex.slice(0, length);
-    }
-
-    const generateRandomString = length => {
-        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-        const array = new Uint8Array(length);
-
-        return Array.from(crypto.getRandomValues(array), x => chars[x % chars.length]).join('');
-    };
-
-    const noisePacket = event.target.closest(".noise-item").querySelector('[name="udpXrayNoisePacket"]');
-
-    switch (event.target.value) {
-        case 'base64':
-            noisePacket.value = generateRandomBase64(64);
-            break;
-
-        case 'rand':
-            noisePacket.value = "50-100";
-            break;
-
-        case 'hex':
-            noisePacket.value = generateRandomHex(64);
-            break;
-
-        case 'str':
-            noisePacket.value = generateRandomString(64);
-            break;
-    }
-}
-
-function deleteUdpNoise(event) {
-    if (globalThis.xrayNoiseCount === 1) {
-        showToast('You cannot delete all noises!', 'error');
-        return;
-    }
-
-    showConfirm(
-        '⚠️ This will delete the noise.\n\n❓ Are you sure?',
-        () => {
-            event.target.closest(".noise-item").remove();
-            enableApplyButton();
-            globalThis.xrayNoiseCount--;
-        }
-    );
-}
-
-function renderUdpNoiseBlock(xrayUdpNoises) {
-    document.getElementById("noises").innerHTML = '';
+function renderNoises(xrayUdpNoises) {
+    document.getElementById('noises').innerHTML = '';
     xrayUdpNoises.forEach((noise, index) => {
-        addUdpNoise(false, index, noise);
+        addNoise(false, index, noise);
     });
-
-    globalThis.xrayNoiseCount = xrayUdpNoises.length;
 }
 
-// Tab navigation handler
+function renderSubscriptions(subscriptions) {
+    if (!subscriptions) return;
+    for (const [type, { label, categories }] of Object.entries(subscriptions)) {
+        const help = elm('a', {
+            className: 'help-icon',
+            href: `https://bia-pain-bache.github.io/BPB-Worker-Panel/usage/${type}/`,
+            target: '_blank',
+            title: 'Help'
+        }, createIcon('info'));
+
+        const header = elm('h3', { textContent: label });
+        const summary = elm('summary', {}, header);
+        const section = elm('details', {}, summary);
+        const table = elm('table', {}, categories.map(({ core, clients }) => {
+            const clientSection = elm('td', {}, clients.map(client => {
+                const icon = createIcon('verified');
+                const title = elm('span', { textContent: client });
+                const wrapper = elm('div', {}, [icon, title]);
+                return wrapper;
+            }));
+
+            const url = generateSubUrl(type, core, label);
+            const ctaSection = elm('td');
+
+            const wgCore = ['wireguard', 'amnezia'].includes(core);
+            if (!wgCore) {
+                const qrBtn = elm('button', { title: 'Display QR code', onclick: () => showQRCode(url) }, createIcon('qr_code'));
+                const copyBtn = elm('button', { title: 'Copy subscription URL', onclick: () => copyToClipboard(url) }, createIcon('content_copy'));
+                ctaSection.append(qrBtn, copyBtn);
+            }
+
+            if (type !== 'raw') {
+                const dlBtn = elm('button', { title: 'Download config', onclick: () => dlUrl(url) }, createIcon('download'));
+                ctaSection.appendChild(dlBtn);
+            }
+
+            return elm('tr', {}, [clientSection, ctaSection]);
+        }));
+
+        const container = elm('div', { className: 'table-container' }, table);
+        section.appendChild(container);
+        const item = elm('div', { className: 'accordion-item' }, [section, help]);
+        document.getElementById('subscriptions').appendChild(item);
+    };
+}
+
+function renderClients(clients) {
+    if (!clients) return;
+    clients.forEach(client => {
+        const name = elm('td', { scope: 'col', textContent: client.name });
+        const minVer = elm('td', { scope: 'col', textContent: client.minVer });
+
+        const source = elm('span', { textContent: client.source });
+        const dlBtn = elm('a', {
+            href: atob(client.b64Url),
+            target: '_blank',
+            rel: 'noopener noreferrer'
+        }, createIcon('download'));
+        const download = elm('td', {}, [source, dlBtn]);
+
+        const row = elm('tr', {}, [name, minVer, download])
+
+        document.getElementById('supported-clients').appendChild(row);
+    });
+}
+
+// ===== Pro Edition: Theme Management & Tab Navigation =====
+function initTheme() {
+    const savedTheme = localStorage.getItem('theme') || 'dark';
+    document.documentElement.setAttribute('data-theme', savedTheme);
+    updateThemeIcon(savedTheme);
+}
+
+function toggleTheme() {
+    const current = document.documentElement.getAttribute('data-theme') || 'dark';
+    const next = current === 'dark' ? 'light' : 'dark';
+    document.documentElement.setAttribute('data-theme', next);
+    localStorage.setItem('theme', next);
+    updateThemeIcon(next);
+}
+
+function updateThemeIcon(theme) {
+    const btn = document.getElementById('themeToggle');
+    if (btn) btn.textContent = theme === 'dark' ? '🌙' : '☀️';
+}
+
 function initTabs() {
     const tabButtons = document.querySelectorAll('.tab-btn');
     const tabContents = document.querySelectorAll('.tab-content');
 
-    // On page load, find the active tab and show it, while hiding others
-    const activeBtn = document.querySelector('.tab-btn.active');
-    const activeTabName = activeBtn ? activeBtn.getAttribute('data-tab') : 'common';
-
-    tabContents.forEach(content => {
-        const tabName = content.getAttribute('data-tab') || content.id.replace('tab-', '');
-        if (tabName === activeTabName) {
-            content.style.display = 'block';
-            content.classList.add('active');
-        } else {
-            content.style.display = 'none';
-            content.classList.remove('active');
-        }
-    });
-
-    tabButtons.forEach(button => {
-        button.addEventListener('click', () => {
-            const tabName = button.getAttribute('data-tab');
-
-            // 1. Remove 'active' class from all tab buttons
-            tabButtons.forEach(btn => btn.classList.remove('active'));
-
-            // 2. Add 'active' class to clicked button
-            button.classList.add('active');
-
-            // 3. Hide all .tab-content sections (display: none)
-            tabContents.forEach(content => {
+    function switchTab(tabName) {
+        tabButtons.forEach(btn => {
+            btn.classList.toggle('active', btn.getAttribute('data-tab') === tabName);
+        });
+        tabContents.forEach(content => {
+            if (content.getAttribute('data-tab') === tabName) {
+                content.style.display = 'block';
+                content.classList.add('active');
+            } else {
                 content.style.display = 'none';
                 content.classList.remove('active');
-            });
-
-            // 4. Show the matching .tab-content section (display: block)
-            const targetContent = document.querySelector(`.tab-content[data-tab="${tabName}"]`) || document.getElementById(`tab-${tabName}`);
-            if (targetContent) {
-                targetContent.style.display = 'block';
-                targetContent.classList.add('active');
             }
         });
+    }
+
+    tabButtons.forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.preventDefault();
+            const tabName = btn.getAttribute('data-tab');
+            switchTab(tabName);
+        });
     });
+
+    const activeBtn = document.querySelector('.tab-btn.active');
+    if (activeBtn) {
+        switchTab(activeBtn.getAttribute('data-tab'));
+    } else if (tabButtons.length > 0) {
+        switchTab(tabButtons[0].getAttribute('data-tab'));
+    }
 }
 
-// Run theme and tabs initialization immediately when script starts
-updateThemeUI();
-initTabs();
-
-// Run verification and setup event listeners when DOM is fully loaded as a backup
-document.addEventListener('DOMContentLoaded', () => {
-    updateThemeUI();
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+        initTheme();
+        initTabs();
+    });
+} else {
+    initTheme();
     initTabs();
-});
-
-
+}
